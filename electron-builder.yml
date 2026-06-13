@@ -12,13 +12,13 @@ files:
 extraResources:
   - from: "bin"
     to: "bin"
-    filter: ["**/*"]
+    filter: ["**/*", "!**/.gitkeep"]
 win:
   target: nsis
   icon: resources/icons/256.png
 mac:
   target: dmg
-  icon: resources/icons/256.png
+  icon: resources/icons/1000.png
 linux:
   target: AppImage
   icon: resources/icons/256.png
