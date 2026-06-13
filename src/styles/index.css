@@ -1,0 +1,354 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, monospace;
+  --color-primary: #2196F3;
+  --color-primary-hover: #1976D2;
+  --color-primary-pressed: #1565C0;
+  --color-primary-light: #E3F2FD;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-danger: #F44336;
+}
+
+/* ═══════════════════════════════════════════════
+   Light theme (default)
+   ═══════════════════════════════════════════════ */
+
+:root,
+[data-theme="light"] {
+  --bg-main: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f8f8f8;
+  --bg-surface-alt: #fafafa;
+  --bg-header: #f0f0f0;
+  --bg-header-hover: #e8e8e8;
+  --bg-input: #ffffff;
+  --bg-table-head: #f5f5f5;
+  --bg-table-row-hover: #f8f8f8;
+  --bg-selected: #E3F2FD;
+  --bg-statusbar: #f4f4f4;
+
+  --border-main: #e0e0e0;
+  --border-light: #eee;
+  --border-input: #ccc;
+  --border-statusbar: #ccc;
+  --border-table-row: #f0f0f0;
+  --border-tab: #e0e0e0;
+
+  --text-primary: #333333;
+  --text-secondary: #555555;
+  --text-muted: #666666;
+  --text-dim: #999999;
+  --text-inverse: #ffffff;
+
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a1a1a1;
+
+  --btn-default-bg: #e0e0e0;
+  --btn-default-bg-hover: #d0d0d0;
+  --btn-default-color: #333333;
+
+  color-scheme: light;
+}
+
+/* ═══════════════════════════════════════════════
+   Dark theme
+   ═══════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-main: #1e1e1e;
+    --bg-surface: #2d2d2d;
+    --bg-surface-hover: #353535;
+    --bg-surface-alt: #333333;
+    --bg-header: #383838;
+    --bg-header-hover: #404040;
+    --bg-input: #3c3c3c;
+    --bg-table-head: #333333;
+    --bg-table-row-hover: #353535;
+    --bg-selected: #1a3a5c;
+    --bg-statusbar: #252525;
+
+    --border-main: #444444;
+    --border-light: #3a3a3a;
+    --border-input: #555555;
+    --border-statusbar: #444444;
+    --border-table-row: #3a3a3a;
+    --border-tab: #444444;
+
+    --text-primary: #e0e0e0;
+    --text-secondary: #bbbbbb;
+    --text-muted: #aaaaaa;
+    --text-dim: #777777;
+    --text-inverse: #ffffff;
+
+    --scrollbar-track: #2d2d2d;
+    --scrollbar-thumb: #555555;
+    --scrollbar-thumb-hover: #666666;
+
+    --btn-default-bg: #444444;
+    --btn-default-bg-hover: #505050;
+    --btn-default-color: #e0e0e0;
+
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --bg-main: #1e1e1e;
+  --bg-surface: #2d2d2d;
+  --bg-surface-hover: #353535;
+  --bg-surface-alt: #333333;
+  --bg-header: #383838;
+  --bg-header-hover: #404040;
+  --bg-input: #3c3c3c;
+  --bg-table-head: #333333;
+  --bg-table-row-hover: #353535;
+  --bg-selected: #1a3a5c;
+  --bg-statusbar: #252525;
+
+  --border-main: #444444;
+  --border-light: #3a3a3a;
+  --border-input: #555555;
+  --border-statusbar: #444444;
+  --border-table-row: #3a3a3a;
+  --border-tab: #444444;
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #bbbbbb;
+  --text-muted: #aaaaaa;
+  --text-dim: #777777;
+  --text-inverse: #ffffff;
+
+  --scrollbar-track: #2d2d2d;
+  --scrollbar-thumb: #555555;
+  --scrollbar-thumb-hover: #666666;
+
+  --btn-default-bg: #444444;
+  --btn-default-bg-hover: #505050;
+  --btn-default-color: #e0e0e0;
+
+  color-scheme: dark;
+}
+
+/* ═══════════════════════════════════════════════
+   Base styles using variables
+   ═══════════════════════════════════════════════ */
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Form controls */
+input[type="text"],
+textarea,
+select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #2196F3;
+  box-shadow: 0 0 0 1px #2196F3;
+}
+
+input[type="checkbox"] {
+  accent-color: #2196F3;
+}
+
+input[type="text"]::placeholder,
+textarea::placeholder {
+  color: var(--text-dim);
+}
+
+/* Buttons */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s, opacity 0.15s;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #2196F3;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #1976D2;
+}
+.btn-primary:active:not(:disabled) {
+  background: #1565C0;
+}
+
+.btn-success {
+  background: #4CAF50;
+  color: white;
+}
+.btn-success:hover:not(:disabled) {
+  background: #43A047;
+}
+
+.btn-warning {
+  background: #FF9800;
+  color: white;
+}
+.btn-warning:hover:not(:disabled) {
+  background: #F57C00;
+}
+
+.btn-danger {
+  background: #F44336;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #E53935;
+}
+
+.btn-default {
+  background: var(--btn-default-bg);
+  color: var(--btn-default-color);
+}
+.btn-default:hover:not(:disabled) {
+  background: var(--btn-default-bg-hover);
+}
+
+/* Panel card */
+.card {
+  border: 1px solid var(--border-main);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 8px 12px;
+  background: var(--bg-header);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.card-header:hover {
+  background: var(--bg-header-hover);
+}
+
+.card-body {
+  padding: 12px;
+}
+
+/* Settings dependency row */
+.dep-row {
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--bg-surface-alt);
+  margin-bottom: 6px;
+}
+
+.dep-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Section title */
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Form row */
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+  display: block;
+  font-weight: 500;
+}
+
+.form-help {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Tab buttons */
+.tab-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-main);
+}
+
+.tab-btn.active {
+  color: #2196F3;
+  border-bottom-color: #2196F3;
+  background: var(--bg-surface);
+}

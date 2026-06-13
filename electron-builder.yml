@@ -1,0 +1,27 @@
+appId: com.coredds.hvd
+productName: HVD Video Downloader
+directories:
+  output: dist
+files:
+  - "!src/**"
+  - "!node_modules/**"
+  - "electron/**"
+  - "resources/**"
+  - "dist/**"
+  - "dist-electron/**"
+extraResources:
+  - from: "bin"
+    to: "bin"
+    filter: ["**/*"]
+win:
+  target: nsis
+  icon: resources/icons/256.png
+mac:
+  target: dmg
+  icon: resources/icons/256.png
+linux:
+  target: AppImage
+  icon: resources/icons/256.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
