@@ -54,6 +54,7 @@ export class YtDlpService {
   setOutputDirectory(dir: string) { this.outputDir = dir }
 
   async isAvailable(): Promise<boolean> {
+    this.autoDetectYtDlpPath()
     console.log('[YtDlpService] checking availability at:', this.ytDlpPath)
     if (await this.isAvailableAtPath(this.ytDlpPath)) return true
 
