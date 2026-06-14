@@ -142,14 +142,18 @@ export default function SettingsTab() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
-          {status === 'not-found' ? (
+          {status === 'not-found' && (
             <button className="btn-primary" style={btnStyle} onClick={() => handleDownload(dep)} disabled={downloading === dep}>
               {downloading === dep ? t('settings.deps.downloading') : t('settings.deps.download')}
             </button>
-          ) : canUpdate ? (
-            <button className="btn-default" style={btnStyle} onClick={handleUpdateYtDlp}>{t('button.update')}</button>
-          ) : (
-            <button className="btn-default" style={btnStyle} onClick={() => handleDownload(dep)}>{t('button.download')}</button>
+          )}
+          {status === 'outdated' && (
+            <button className="btn-default" style={btnStyle} onClick={canUpdate ? handleUpdateYtDlp : () => handleDownload(dep)}>
+              {downloading === dep ? t('settings.deps.downloading') : t('button.update')}
+            </button>
+          )}
+          {status === 'available' && (
+            <span style={{ fontSize: 12, color: '#4CAF50', fontWeight: 600 }}>{t('status.deps.up.to.date')}</span>
           )}
         </div>
       </div>

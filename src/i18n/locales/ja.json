@@ -112,6 +112,7 @@
   "status.deno.not.found": "Denoが見つかりません（YouTubeに必要）",
   "status.deno.available": "Denoが利用可能です",
   "status.deno.not.installed": "Denoがインストールされていません（YouTubeが失敗する可能性があります）",
+  "status.deps.up.to.date": "最新です",
   "alert.error": "エラー",
   "alert.information": "情報",
   "alert.warning": "警告",

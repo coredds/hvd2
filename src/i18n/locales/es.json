@@ -112,6 +112,7 @@
   "status.deno.not.found": "Deno no encontrado (requerido para YouTube)",
   "status.deno.available": "Deno está disponible",
   "status.deno.not.installed": "Deno no instalado (YouTube puede fallar)",
+  "status.deps.up.to.date": "Actualizado",
   "alert.error": "Error",
   "alert.information": "Información",
   "alert.warning": "Advertencia",
