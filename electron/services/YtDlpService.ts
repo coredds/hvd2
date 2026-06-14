@@ -387,6 +387,7 @@ child.on('error', (err) => {
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
       PYTHONIOENCODING: 'utf-8',
+      PYTHONUTF8: '1',
       LANG: 'en_US.UTF-8',
       LC_ALL: 'en_US.UTF-8',
     }
