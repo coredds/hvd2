@@ -29,7 +29,7 @@ export default function DownloadTable({ items, selectedIds, onToggleSelect }: Pr
   if (items.length === 0) {
     return (
       <div className="card" style={{ padding: '20px 12px', textAlign: 'center' }}>
-        <span style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: 13 }}>No items in the download queue.</span>
+        <span style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: 13 }}>{t('alert.no.items.message')}</span>
       </div>
     )
   }

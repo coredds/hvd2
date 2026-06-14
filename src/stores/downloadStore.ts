@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
+import i18n from '../i18n'
 import type { DownloadItem, DownloadStatus } from '../types'
 
 interface DownloadStore {
@@ -30,7 +31,7 @@ export const useDownloadStore = create<DownloadStore>((set) => ({
         newItems.push({
           id: uuidv4(),
           url,
-          title: 'Unknown Title',
+          title: i18n.t('general.unknown.title'),
           format,
           status: 'QUEUED',
           progress: 0,

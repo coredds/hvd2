@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 interface Props {
   progress: number
   status: string
@@ -5,10 +7,11 @@ interface Props {
 }
 
 export default function ProgressCell({ progress, status, filePath }: Props) {
+  const { t } = useTranslation()
   const pct = Math.round(progress * 100)
 
   if (status === 'ERROR') {
-    return <span style={{ color: '#F44336', fontSize: 13, fontWeight: 500 }}>Error</span>
+    return <span style={{ color: '#F44336', fontSize: 13, fontWeight: 500 }}>{t('status.failed.label')}</span>
   }
 
   return (

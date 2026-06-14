@@ -37,7 +37,7 @@ export default function LogsTab() {
           lineHeight: 1.5,
         }}>
           {lines.length === 0 ? (
-            <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>No log entries yet.</span>
+            <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>{t('alert.no.logs')}</span>
           ) : (
             lines.join('\n')
           )}

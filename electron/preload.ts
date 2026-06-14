@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadDeno: () => ipcRenderer.invoke('deps:download-deno'),
     openFolder: (type: string) => ipcRenderer.invoke('deps:open-folder', type),
     getYtDlpVersion: () => ipcRenderer.invoke('deps:get-ytdlp-version'),
+    getYtDlpLatestVersion: () => ipcRenderer.invoke('deps:get-ytdlp-latest-version'),
   },
   prefs: {
     get: (key: string) => ipcRenderer.invoke('prefs:get', key),
@@ -47,7 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLocale: () => ipcRenderer.invoke('app:get-locale'),
     openPath: (path: string) => ipcRenderer.invoke('app:open-path', path),
     restart: () => ipcRenderer.invoke('app:restart'),
-    loginUrl: (url: string) => ipcRenderer.invoke('app:login-url', url),
+    loginUrl: (url: string, title?: string) => ipcRenderer.invoke('app:login-url', url, title),
     getCookiesFile: () => ipcRenderer.invoke('app:get-cookies-file'),
   },
 })

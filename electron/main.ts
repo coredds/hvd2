@@ -154,6 +154,10 @@ ipcMain.handle('deps:get-ytdlp-version', async () => {
   return ytDlp.getVersion()
 })
 
+ipcMain.handle('deps:get-ytdlp-latest-version', async () => {
+  return ytDlp.getLatestVersion()
+})
+
 // ─── IPC: Preferences ───────────────────────────────────────────
 
 ipcMain.handle('prefs:get', async (_event, key: string) => {
@@ -209,11 +213,11 @@ ipcMain.handle('app:restart', async () => {
 
 // ─── IPC: YouTube Authentication ─────────────────────────────────
 
-ipcMain.handle('app:login-url', async (_event, url: string) => {
+ipcMain.handle('app:login-url', async (_event, url: string, title?: string) => {
   const loginWin = new BrowserWindow({
     width: 900,
     height: 700,
-    title: 'Log in',
+    title: title || 'Log in',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

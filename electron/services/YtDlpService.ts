@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import https from 'https'
 import { BrowserWindow } from 'electron'
 import { DependencyManager } from './DependencyManager'
 import { buildCommand, buildYoutubeFormatString, buildVideoFormatString, isBestAvailable, isWorstAvailable, isBestFormat, DownloadItem, DownloadOptions } from './CommandBuilder'
@@ -101,15 +102,58 @@ export class YtDlpService {
     }
   }
 
+  async getLatestVersion(): Promise<string | null> {
+    return new Promise((resolve) => {
+      const req = https.get(
+        'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest',
+        { headers: { 'User-Agent': 'HVD-Video-Downloader', Accept: 'application/vnd.github+json' } },
+        (res) => {
+          if (res.statusCode !== 200) { resolve(null); return }
+          const chunks: Buffer[] = []
+          res.on('data', (d) => chunks.push(d))
+          res.on('end', () => {
+            try {
+              const data = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+              const tag = data.tag_name as string
+              resolve(tag || null)
+            } catch { resolve(null) }
+          })
+        },
+      )
+      req.on('error', () => resolve(null))
+      req.setTimeout(10000, () => { req.destroy(); resolve(null) })
+    })
+  }
+
   async isVersionRecent(): Promise<boolean> {
     const version = await this.getVersion()
     if (version === 'unknown') return true
-    const parts = version.split('.')
-    if (parts.length < 2) return true
-    const year = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10)
-    if (year > 2024 || (year === 2024 && month >= 10)) return true
-    return false
+    const latest = await this.getLatestVersion()
+    if (!latest) {
+      const parts = version.split('.')
+      if (parts.length < 2) return true
+      const year = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10)
+      if (isNaN(year) || isNaN(month)) return true
+      const now = new Date()
+      const versionDate = new Date(year, month - 1)
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+      return versionDate >= sixMonthsAgo
+    }
+    return version === latest || this.compareVersions(version, latest) >= 0
+  }
+
+  private compareVersions(a: string, b: string): number {
+    const parse = (v: string) => v.replace(/^v/i, '').split('.').map(Number)
+    const pa = parse(a)
+    const pb = parse(b)
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const da = pa[i] ?? 0
+      const db = pb[i] ?? 0
+      if (da > db) return 1
+      if (da < db) return -1
+    }
+    return 0
   }
 
   getFFmpegPath(): string {

@@ -127,13 +127,13 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       setErrorMessage(id, message)
       setStatusMessage('status.error')
       setStatusSpinner(false)
-      appendLog(`Download error: ${message}`)
+      appendLog(t('downloads.error.log').replace('{0}', message))
       
       // If auth error, offer login
       if (/logged.in|cookies|403|Forbidden|authentication/i.test(message)) {
         const item = useDownloadStore.getState().items.find(i => i.id === id)
         if (item) {
-          appendLog('Tip: Use Settings → Authentication to log in to this site first.')
+          appendLog(t('downloads.error.auth.tip'))
         }
       }
     })

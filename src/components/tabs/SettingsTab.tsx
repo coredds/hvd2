@@ -32,14 +32,14 @@ export default function SettingsTab() {
 
   const downloadDep = async (dep: DependencyType) => {
     setDownloading(dep)
-    appendLog(`Downloading ${dep === 'ytdlp' ? 'yt-dlp' : dep === 'ffmpeg' ? 'FFmpeg' : 'Deno'}...`)
+    appendLog(t('log.deps.downloading').replace('{0}', dep === 'ytdlp' ? 'yt-dlp' : dep === 'ffmpeg' ? 'FFmpeg' : 'Deno'))
     const api = window.electronAPI
     try {
       if (dep === 'ytdlp') await api.deps.downloadYtDlp()
       else if (dep === 'ffmpeg') await api.deps.downloadFFmpeg()
       else await api.deps.downloadDeno()
 
-      appendLog(`${dep} installed successfully`)
+      appendLog(t('log.deps.installed').replace('{0}', dep))
       // Refresh status — re-run the check
       if (dep === 'ytdlp') {
         const yt = await api.deps.checkYtDlp()
@@ -64,24 +64,33 @@ export default function SettingsTab() {
     const success = await downloadDep(dep)
     if (success) {
       await window.electronAPI.dialog.showAlert({
-        title: 'Installed',
-        message: `${dep === 'ytdlp' ? 'yt-dlp' : dep === 'ffmpeg' ? 'FFmpeg' : 'Deno'} downloaded and ready.`,
+        title: t('settings.deps.installed.title'),
+        message: t('settings.deps.installed.message').replace('{0}', dep === 'ytdlp' ? 'yt-dlp' : dep === 'ffmpeg' ? 'FFmpeg' : 'Deno'),
       })
     } else {
       await window.electronAPI.dialog.showAlert({
         title: t('alert.error'),
-        message: `Failed to download ${dep}. Check the Logs tab for details.`,
+        message: t('settings.deps.failed.message').replace('{0}', dep),
       })
     }
   }
 
   const handleUpdateYtDlp = async () => {
-    const version = await window.electronAPI.deps.getYtDlpVersion()
+    const [version, latest] = await Promise.all([
+      window.electronAPI.deps.getYtDlpVersion(),
+      window.electronAPI.deps.getYtDlpLatestVersion(),
+    ])
+    let message = t('settings.deps.update.message').replace('{0}', version)
+    if (latest && latest !== version) {
+      message = message.replace('{1}', latest)
+    } else {
+      message = message.replace('\n\n{1}', '')
+    }
     const result = await window.electronAPI.dialog.showAlert({
-      title: 'Update yt-dlp',
-      message: `Current version: ${version}\n\nDownload and install the latest version?`,
+      title: t('settings.deps.update.title'),
+      message,
       type: 'question',
-      buttons: ['Update', 'Cancel'],
+      buttons: [t('settings.deps.update.button'), t('alert.playlist.cancel')],
     })
     if (result === 0) await handleDownload('ytdlp')
   }
@@ -135,7 +144,7 @@ export default function SettingsTab() {
         <div style={{ display: 'flex', gap: 4 }}>
           {status === 'not-found' ? (
             <button className="btn-primary" style={btnStyle} onClick={() => handleDownload(dep)} disabled={downloading === dep}>
-              {downloading === dep ? 'Downloading...' : 'Download'}
+              {downloading === dep ? t('settings.deps.downloading') : t('settings.deps.download')}
             </button>
           ) : canUpdate ? (
             <button className="btn-default" style={btnStyle} onClick={handleUpdateYtDlp}>{t('button.update')}</button>
@@ -178,7 +187,7 @@ export default function SettingsTab() {
           </button>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 10 }}>
-          These tools are required for downloading. The app downloads them to <code style={{ background: 'var(--bg-input)', padding: '1px 4px', borderRadius: 2, fontSize: 11 }}>bin/</code>.
+          <span dangerouslySetInnerHTML={{ __html: t('settings.deps.description') }} />
         </div>
         <>
             <DepRow name="yt-dlp" status={ytDlpStatus} dep="ytdlp" version={ytDlpVersion} canUpdate />
@@ -214,7 +223,7 @@ export default function SettingsTab() {
         </div>
 
         <div className="form-row">
-          <div className="form-label">Theme</div>
+          <div className="form-label">{t('settings.theme.label')}</div>
           <select
             style={selectStyle}
             value={prefs['app.theme'] || 'auto'}
@@ -224,28 +233,28 @@ export default function SettingsTab() {
               window.electronAPI.prefs.set('app.theme', theme).catch(() => {})
             }}
           >
-            <option value="auto">Auto (system)</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="auto">{t('settings.theme.auto')}</option>
+            <option value="light">{t('settings.theme.light')}</option>
+            <option value="dark">{t('settings.theme.dark')}</option>
           </select>
         </div>
 
         {/* Authentication */}
         <div className="card" style={{ padding: 12, background: 'var(--bg-surface-alt)', marginTop: 12 }}>
-          <div className="section-title">Authentication</div>
+          <div className="section-title">{t('settings.auth.title')}</div>
           <div className="form-help" style={{ marginBottom: 10 }}>
-            Some sites require login. HVD uses its built-in browser for cookies — log in once per site and downloads will work.
+            {t('settings.auth.description')}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
-              await window.electronAPI.app.loginUrl('https://www.youtube.com')
+              await window.electronAPI.app.loginUrl('https://www.youtube.com', t('general.login.title'))
             }}>
-              Log in with YouTube
+              {t('settings.auth.login.youtube')}
             </button>
             <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
-              await window.electronAPI.app.loginUrl('https://vimeo.com/log_in')
+              await window.electronAPI.app.loginUrl('https://vimeo.com/log_in', t('general.login.title'))
             }}>
-              Log in with Vimeo
+              {t('settings.auth.login.vimeo')}
             </button>
           </div>
         </div>

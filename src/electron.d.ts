@@ -21,6 +21,7 @@ export interface ElectronAPI {
     downloadDeno: () => Promise<void>
     openFolder: (type: DependencyType) => Promise<void>
     getYtDlpVersion: () => Promise<string>
+    getYtDlpLatestVersion: () => Promise<string | null>
   }
   prefs: {
     get: (key: string) => Promise<any>
@@ -35,7 +36,7 @@ export interface ElectronAPI {
     getLocale: () => Promise<string>
     openPath: (path: string) => Promise<void>
     restart: () => Promise<void>
-    loginUrl: (url: string) => Promise<boolean>
+    loginUrl: (url: string, title?: string) => Promise<boolean>
     getCookiesFile: () => Promise<string | null>
   }
 }

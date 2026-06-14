@@ -26,7 +26,7 @@ i18n.use(initReactI18next).init({
   },
 })
 
-const SUPPORTED_LANGS = ['en', 'de', 'es', 'it', 'ja'] as const
+const SUPPORTED_LANGS = ['en', 'de', 'es', 'it', 'ja', 'pt'] as const
 
 export function osLocaleToLang(locale: string): string {
   const lang = locale.split('-')[0].toLowerCase()

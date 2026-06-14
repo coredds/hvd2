@@ -1,5 +1,6 @@
 import { useState, useEffect, Component } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from './i18n'
 import { resolveAndApplyLanguage } from './i18n'
 import DownloadsTab from './components/tabs/DownloadsTab'
 import SettingsTab from './components/tabs/SettingsTab'
@@ -16,7 +17,7 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Er
       const { message, stack } = this.state.error
       return (
         <div style={{ padding: 20, color: 'red', fontFamily: 'monospace', fontSize: 12 }}>
-          <h3>App Error</h3>
+          <h3>{i18n.t('app.error.heading')}</h3>
           <pre>{message}</pre>
           <pre>{stack}</pre>
         </div>
@@ -111,7 +112,7 @@ export default function App() {
     setDepsChecked(true)
 
     if (missing.length > 0) {
-      appendLog(`Missing dependencies: ${missing.join(', ')}. Open Settings to download.`)
+      appendLog(t('app.deps.missing').replace('{0}', missing.join(', ')))
     }
   }
 
@@ -132,8 +133,8 @@ export default function App() {
             fontWeight: 500,
           }}>
             <span>{ytDlpStatus === 'not-found'
-              ? 'yt-dlp is required to download videos. '
-              : 'Some dependencies are missing or outdated. '}
+              ? t('app.deps.missing.ytdlp')
+              : t('app.deps.missing.other')}
             </span>
             <button
               onClick={() => setActiveTab(1)}
@@ -148,7 +149,7 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              Open Settings
+              {t('button.open.settings')}
             </button>
           </div>
         )}
