@@ -22,15 +22,12 @@ export interface DownloadOptions {
 export function buildCommand(
   item: DownloadItem,
   options: DownloadOptions,
-  ytDlpPath: string,
+  ffmpegPath: string,
   defaultOutputDir: string,
 ): string[] {
-  const binDir = ytDlpPath.includes('\\') || ytDlpPath.includes('/')
-    ? ytDlpPath.substring(0, ytDlpPath.lastIndexOf('\\') > -1 ? ytDlpPath.lastIndexOf('\\') : ytDlpPath.lastIndexOf('/'))
-    : '.'
   const isYoutube = item.url.includes('youtube.com') || item.url.includes('youtu.be')
   const args: string[] = [
-    '--ffmpeg-location', binDir,
+    '--ffmpeg-location', ffmpegPath,
     '-P', options.outputDirectory || defaultOutputDir,
     '-o', '%(title).200B [%(id)s].%(ext)s',
     '--restrict-filenames',

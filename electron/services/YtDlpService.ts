@@ -276,7 +276,7 @@ export class YtDlpService {
   // ─── Download ───────────────────────────────────────────────
 
   startDownload(item: DownloadItem, options: DownloadOptions): ChildProcess {
-    const args = buildCommand(item, options, this.ytDlpPath, this.outputDir)
+    const args = buildCommand(item, options, this.getFFmpegPath(), this.outputDir)
     console.log('[YtDlpService] starting download with yt-dlp path:', this.ytDlpPath)
     console.log('[YtDlpService] command:', this.ytDlpPath, args.join(' '))
     const child = this.spawnYtDlp(args)

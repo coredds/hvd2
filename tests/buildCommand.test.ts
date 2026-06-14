@@ -19,6 +19,12 @@ const baseOptions: DownloadOptions = {
   addMetadata: false,
 }
 
+const ffmpegPath = 'C:\\Users\\test\\bin\\ffmpeg.exe'
+
+function build(item: DownloadItem = baseItem, options: Partial<DownloadOptions> = {}): string[] {
+  return buildCommand(item, { ...baseOptions, ...options }, ffmpegPath, 'C:\\DL')
+}
+
 function findFlag(args: string[], flag: string): string | null {
   const idx = args.indexOf(flag)
   if (idx === -1) return null
@@ -32,127 +38,116 @@ function hasFlag(args: string[], flag: string): boolean {
 describe('CommandBuilder', () => {
   describe('buildCommand', () => {
     it('always includes base flags', () => {
-      const args = buildCommand(baseItem, baseOptions, 'yt-dlp.exe', 'C:\\DL')
+      const args = build()
       expect(hasFlag(args, '--restrict-filenames')).toBe(true)
       expect(hasFlag(args, '--no-clean-infojson')).toBe(true)
       expect(hasFlag(args, '--newline')).toBe(true)
       expect(hasFlag(args, '--progress')).toBe(true)
     })
 
+    it('includes ffmpeg-location', () => {
+      const args = build()
+      expect(findFlag(args, '--ffmpeg-location')).toBe(ffmpegPath)
+    })
+
     it('respects output directory', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, outputDirectory: 'C:\\Vids' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { outputDirectory: 'C:\\Vids' })
       const idx = args.indexOf('-P')
       expect(args[idx + 1]).toBe('C:\\Vids')
     })
 
     it('passes --no-playlist when item.noPlaylist is true', () => {
-      const args = buildCommand(baseItem, baseOptions, 'yt-dlp.exe', 'C:\\DL')
+      const args = build()
       expect(hasFlag(args, '--no-playlist')).toBe(true)
 
-      const args2 = buildCommand({ ...baseItem, noPlaylist: false }, baseOptions, 'yt-dlp.exe', 'C:\\DL')
+      const args2 = build({ ...baseItem, noPlaylist: false })
       expect(hasFlag(args2, '--no-playlist')).toBe(false)
     })
 
     it('video mode uses format selection', () => {
-      const args = buildCommand(baseItem, baseOptions, 'yt-dlp.exe', 'C:\\DL')
+      const args = build()
       expect(hasFlag(args, '-f')).toBe(true)
       expect(hasFlag(args, '--extract-audio')).toBe(false)
     })
 
     it('audio mode adds --extract-audio and audio format', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, audioOnly: true, audioFormat: 'opus' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { audioOnly: true, audioFormat: 'opus' })
       expect(hasFlag(args, '--extract-audio')).toBe(true)
       expect(findFlag(args, '--audio-format')).toBe('opus')
     })
 
     it('audio mode passes --audio-quality', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, audioOnly: true, audioQuality: '320k' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { audioOnly: true, audioQuality: '320k' })
       expect(findFlag(args, '--audio-quality')).toBe('320k')
     })
 
     it('YouTube video uses simple format without ext filter', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, videoQuality: '720p' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { videoQuality: '720p' })
       const fmt = findFlag(args, '-f')
       expect(fmt).toContain('720')
       expect(fmt).not.toContain('ext=')
     })
 
     it('YouTube best quality uses simple format', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, videoQuality: 'Best Available' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { videoQuality: 'Best Available' })
       expect(findFlag(args, '-f')).toBe('bestvideo+bestaudio/best')
     })
 
     it('non-YouTube uses ext filter in format', () => {
-      const args = buildCommand(
-        { ...baseItem, url: vimeoUrl },
-        { ...baseOptions, videoQuality: '1080p', videoFormat: 'mp4' },
-        'yt-dlp.exe', 'C:\\DL',
-      )
+      const args = build({ ...baseItem, url: vimeoUrl }, { videoQuality: '1080p', videoFormat: 'mp4' })
       const fmt = findFlag(args, '-f')
       expect(fmt).toContain('ext=mp4')
       expect(fmt).toContain('1080')
     })
 
     it('non-YouTube adds --merge-output-format for specific format', () => {
-      const args = buildCommand(
-        { ...baseItem, url: vimeoUrl },
-        { ...baseOptions, videoQuality: '1080p', videoFormat: 'mp4' },
-        'yt-dlp.exe', 'C:\\DL',
-      )
+      const args = build({ ...baseItem, url: vimeoUrl }, { videoQuality: '1080p', videoFormat: 'mp4' })
       expect(hasFlag(args, '--merge-output-format')).toBe(true)
     })
 
     it('thumbnail embedding adds write/embed/convert flags', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, embedThumbnail: true }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { embedThumbnail: true })
       expect(hasFlag(args, '--write-thumbnail')).toBe(true)
       expect(hasFlag(args, '--embed-thumbnail')).toBe(true)
       expect(findFlag(args, '--convert-thumbnails')).toBe('jpg')
     })
 
     it('thumbnail forces mp4 for video regardless of format', () => {
-      const args = buildCommand(
-        { ...baseItem, url: vimeoUrl },
-        { ...baseOptions, videoFormat: 'mp4', embedThumbnail: true },
-        'yt-dlp.exe', 'C:\\DL',
-      )
+      const args = build({ ...baseItem, url: vimeoUrl }, { videoFormat: 'mp4', embedThumbnail: true })
       // Always adds --merge-output-format mp4 when embedding thumbnail
       const mergeFlags = args.filter(a => a === '--merge-output-format')
       expect(mergeFlags.length).toBe(2)
     })
 
     it('subtitles add --write-subs and --embed-subs', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, embedSubtitles: true }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { embedSubtitles: true })
       expect(hasFlag(args, '--write-subs')).toBe(true)
       expect(hasFlag(args, '--embed-subs')).toBe(true)
     })
 
     it('adds --add-metadata', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, addMetadata: true }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { addMetadata: true })
       expect(hasFlag(args, '--add-metadata')).toBe(true)
     })
 
     it('passes --cookies when cookiesFile is set', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, cookiesFile: 'C:\\tmp\\cookies.txt' }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { cookiesFile: 'C:\\tmp\\cookies.txt' })
       expect(findFlag(args, '--cookies')).toBe('C:\\tmp\\cookies.txt')
     })
 
     it('audio-only YouTube adds bestaudio format', () => {
-      const args = buildCommand(baseItem, { ...baseOptions, audioOnly: true }, 'yt-dlp.exe', 'C:\\DL')
+      const args = build(baseItem, { audioOnly: true })
       const fmt = findFlag(args, '-f')
       expect(fmt).toBe('bestaudio/best')
     })
 
     it('video audio format for non-YouTube', () => {
-      const args = buildCommand(
-        { ...baseItem, url: vimeoUrl },
-        { ...baseOptions, videoAudioFormat: 'opus' },
-        'yt-dlp.exe', 'C:\\DL',
-      )
+      const args = build({ ...baseItem, url: vimeoUrl }, { videoAudioFormat: 'opus' })
       expect(findFlag(args, '--audio-format')).toBe('opus')
     })
 
     it('URL is always last arg', () => {
-      const args = buildCommand(baseItem, baseOptions, 'yt-dlp.exe', 'C:\\DL')
+      const args = build()
       expect(args[args.length - 1]).toBe(ytUrl)
     })
   })
