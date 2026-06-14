@@ -85,19 +85,11 @@ export class YtDlpService {
   }
 
   async isFFmpegAvailable(): Promise<boolean> {
-    if (this.deps.isFFmpegAvailableLocally()) return true
-    return this.runCmd('ffmpeg', ['-version'])
+    return this.deps.isFFmpegAvailableLocally()
   }
 
   async isDenoAvailable(): Promise<boolean> {
-    if (this.deps.isDenoAvailableLocally()) return true
-
-    const env: Record<string, string> = { ...process.env as Record<string, string> }
-    const denoBinDir = path.join(os.homedir(), '.deno', 'bin')
-    if (!(env.PATH || '').includes(denoBinDir)) {
-      env.PATH = `${denoBinDir}${path.delimiter}${env.PATH || ''}`
-    }
-    return this.runCmd('deno', ['--version'], env)
+    return this.deps.isDenoAvailableLocally()
   }
 
   async getVersion(): Promise<string> {
@@ -171,13 +163,11 @@ export class YtDlpService {
   }
 
   getFFmpegPath(): string {
-    if (this.deps.isFFmpegAvailableLocally()) return this.deps.getLocalFFmpegPath()
-    return 'ffmpeg'
+    return this.deps.getLocalFFmpegPath()
   }
 
   getDenoPath(): string {
-    if (this.deps.isDenoAvailableLocally()) return this.deps.getLocalDenoPath()
-    return 'deno'
+    return this.deps.getLocalDenoPath()
   }
 
   // ─── yt-dlp PATH detection ──────────────────────────────────

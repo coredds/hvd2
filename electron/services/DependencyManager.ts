@@ -47,7 +47,7 @@ export class DependencyManager {
   private binDirectory: string
 
   constructor() {
-    const baseDir = app.isPackaged ? process.resourcesPath : process.cwd()
+    const baseDir = app.isPackaged ? app.getPath('userData') : process.cwd()
     this.binDirectory = path.join(baseDir, 'bin')
     if (!fs.existsSync(this.binDirectory)) {
       fs.mkdirSync(this.binDirectory, { recursive: true })
