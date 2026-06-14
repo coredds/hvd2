@@ -31,6 +31,7 @@ export class YtDlpService {
   private ytDlpPath = 'yt-dlp'
   private deps: DependencyManager
   private activeProcesses: Map<string, ChildProcess> = new Map()
+  private readonly isWin = process.platform === 'win32'
 
   constructor() {
     this.deps = new DependencyManager()
@@ -39,6 +40,20 @@ export class YtDlpService {
 
   getDependencyManager(): DependencyManager {
     return this.deps
+  }
+
+  private spawnYtDlp(args: string[]): ChildProcess {
+    return spawn(this.ytDlpPath, args, {
+      env: this.buildEnv(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+  }
+
+  private decodeOutput(buf: Buffer): string {
+    const raw = buf.toString('utf8')
+    if (!raw.includes('\uFFFD')) return raw.trim()
+    return buf.toString('latin1').trim()
   }
 
   private autoDetectYtDlpPath() {
@@ -87,13 +102,12 @@ export class YtDlpService {
 
   async getVersion(): Promise<string> {
     try {
-      const child = spawn(this.ytDlpPath, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] })
+      const child = this.spawnYtDlp(['--version'])
       const buf: Buffer[] = []
-      child.stdout.on('data', (d) => buf.push(d))
+      child.stdout!.on('data', (d) => buf.push(d))
       return new Promise((resolve) => {
         child.on('close', () => {
-          const out = Buffer.concat(buf).toString('utf8').trim()
-          resolve(out || 'unknown')
+          resolve(this.decodeOutput(Buffer.concat(buf)) || 'unknown')
         })
         child.on('error', () => resolve('unknown'))
       })
@@ -240,14 +254,11 @@ export class YtDlpService {
     const browser = browserSource || 'firefox'
     return new Promise((resolve) => {
       const tryExtract = (args: string[]) => {
-        const child = spawn(this.ytDlpPath, args, {
-          env: this.buildEnv(),
-          stdio: ['ignore', 'pipe', 'pipe'],
-        })
+        const child = this.spawnYtDlp(args)
         const buf: Buffer[] = []
-        child.stdout.on('data', (d: Buffer) => buf.push(d))
+        child.stdout!.on('data', (d: Buffer) => buf.push(d))
         child.on('close', (code: number | null) => {
-          const title = Buffer.concat(buf).toString('utf8').trim()
+          const title = this.decodeOutput(Buffer.concat(buf))
           if (code === 0 && title && !title.startsWith('ERROR:')) {
             resolve(title)
           } else if (args.includes('--cookies-from-browser')) {
@@ -268,16 +279,13 @@ export class YtDlpService {
     const args = buildCommand(item, options, this.ytDlpPath, this.outputDir)
     console.log('[YtDlpService] starting download with yt-dlp path:', this.ytDlpPath)
     console.log('[YtDlpService] command:', this.ytDlpPath, args.join(' '))
-    const child = spawn(this.ytDlpPath, args, {
-      env: this.buildEnv(),
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-    })
+    const child = this.spawnYtDlp(args)
 
     // Capture stderr for error reporting
-    let stderrText = ''
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderrText += chunk.toString('utf8')
+let stderrText = ''
+    let stderrBuf: Buffer[] = []
+    child.stderr!.on('data', (chunk: Buffer) => {
+      stderrBuf.push(chunk)
     })
 
     this.activeProcesses.set(item.id, child)
@@ -295,14 +303,19 @@ export class YtDlpService {
       win.webContents.send(channel, data)
     }
 
-    let buf = ''
-    child.stdout.on('data', (chunk: Buffer) => {
-      buf += chunk.toString('utf8')
-      const lines = buf.split(/\r?\n/)
-      buf = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.trim()) continue
+    let buf = Buffer.alloc(0)
+    child.stdout!.on('data', (chunk: Buffer) => {
+      buf = Buffer.concat([buf, chunk])
+      while (buf.length > 0) {
+        const idx = buf.indexOf('\n'.charCodeAt(0))
+        if (idx === -1) break
+        let lineBuf = buf.subarray(0, idx)
+        buf = buf.subarray(idx + 1)
+        if (lineBuf[lineBuf.length - 1] === '\r'.charCodeAt(0)) {
+          lineBuf = lineBuf.subarray(0, lineBuf.length - 1)
+        }
+        const line = this.decodeOutput(lineBuf)
+        if (!line) continue
 
         // Forward to renderer log
         push('download:log', { id: item.id, line })
@@ -357,6 +370,7 @@ export class YtDlpService {
 
     child.on('close', async (code) => {
       this.activeProcesses.delete(item.id)
+      stderrText = this.decodeOutput(Buffer.concat(stderrBuf))
 
       if (code === 0) {
         const bestPath = finalFilePath || downloadedFilePath
