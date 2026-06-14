@@ -1,6 +1,6 @@
 {
   "name": "hvd",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "HVD Video Downloader - yt-dlp GUI wrapper",
   "main": "dist-electron/main.js",
   "author": "David Duarte",
