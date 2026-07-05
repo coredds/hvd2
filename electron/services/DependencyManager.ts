@@ -99,7 +99,22 @@ export class DependencyManager {
 
     if (type === 'ytdlp') {
       const dest = this.getLocalYtDlpPath()
-      await this.downloadFile(url, dest, onProgress)
+      const tmpDest = dest + '.tmp'
+      await this.downloadFile(url, tmpDest, onProgress)
+      try {
+        if (fs.existsSync(dest)) {
+          fs.unlinkSync(dest)
+        }
+      } catch {
+      }
+      try {
+        fs.renameSync(tmpDest, dest)
+      } catch (e) {
+        throw new Error(
+          `Cannot replace yt-dlp.exe — file may be locked by antivirus or another process. ` +
+          `Updated binary saved to ${tmpDest}. Try closing the app and renaming it manually.`,
+        )
+      }
       if (!isWindows()) fs.chmodSync(dest, 0o755)
     } else if (type === 'ffmpeg') {
       const isTarXz = url.endsWith('.tar.xz') || url.endsWith('.txz')
@@ -313,7 +328,10 @@ export class DependencyManager {
           if (walk(full)) return true
         } else if (matcher(entry.name)) {
           const destPath = path.join(destDir, outName)
-          fs.copyFileSync(full, destPath)
+          const tmpPath = destPath + '.tmp'
+          fs.copyFileSync(full, tmpPath)
+          try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath) } catch {}
+          fs.renameSync(tmpPath, destPath)
           if (!isWindows()) fs.chmodSync(destPath, 0o755)
           return true
         }

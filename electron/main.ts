@@ -138,6 +138,10 @@ ipcMain.handle('deps:download-ytdlp', async () => {
   await deps.download('ytdlp', () => {})
 })
 
+ipcMain.handle('deps:update-ytdlp-self', async () => {
+  return ytDlp.updateSelf()
+})
+
 ipcMain.handle('deps:download-ffmpeg', async () => {
   await deps.download('ffmpeg', () => {})
 })

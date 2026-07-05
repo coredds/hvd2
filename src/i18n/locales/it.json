@@ -146,6 +146,7 @@
   "log.ytdlp.error.start": "Impossibile avviare yt-dlp: {0}",
   "log.deps.downloading": "Scaricamento di {0}...",
   "log.deps.installed": "{0} installato con successo",
+  "log.deps.fallback": "Download diretto fallito, provando {0}...",
   "quality.best": "Migliore Disponibile",
   "quality.4k": "2160p (4K)",
   "quality.1440p": "1440p",

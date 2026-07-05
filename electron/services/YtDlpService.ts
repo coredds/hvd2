@@ -238,6 +238,30 @@ export class YtDlpService {
     })
   }
 
+  // ─── Self-update via yt-dlp -U ──────────────────────────────
+
+  async updateSelf(): Promise<{ success: boolean; message: string }> {
+    return new Promise((resolve) => {
+      const child = this.spawnYtDlp(['-U'])
+      const stdout: Buffer[] = []
+      const stderr: Buffer[] = []
+      child.stdout!.on('data', (d) => stdout.push(d))
+      child.stderr!.on('data', (d) => stderr.push(d))
+      child.on('close', (code) => {
+        const out = this.decodeOutput(Buffer.concat(stdout))
+        const err = this.decodeOutput(Buffer.concat(stderr))
+        if (code === 0) {
+          resolve({ success: true, message: out })
+        } else {
+          resolve({ success: false, message: err || out || `exit code ${code}` })
+        }
+      })
+      child.on('error', (err) => {
+        resolve({ success: false, message: err.message })
+      })
+    })
+  }
+
   // ─── Title extraction ───────────────────────────────────────
 
   async extractTitle(url: string, browserSource?: string): Promise<string> {

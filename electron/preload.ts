@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadYtDlp: () => ipcRenderer.invoke('deps:download-ytdlp'),
     downloadFFmpeg: () => ipcRenderer.invoke('deps:download-ffmpeg'),
     downloadDeno: () => ipcRenderer.invoke('deps:download-deno'),
+    updateYtDlpSelf: () => ipcRenderer.invoke('deps:update-ytdlp-self'),
     openFolder: (type: string) => ipcRenderer.invoke('deps:open-folder', type),
     getYtDlpVersion: () => ipcRenderer.invoke('deps:get-ytdlp-version'),
     getYtDlpLatestVersion: () => ipcRenderer.invoke('deps:get-ytdlp-latest-version'),

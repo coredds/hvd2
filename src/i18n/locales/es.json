@@ -146,6 +146,7 @@
   "log.ytdlp.error.start": "Error al iniciar yt-dlp: {0}",
   "log.deps.downloading": "Descargando {0}...",
   "log.deps.installed": "{0} instalado correctamente",
+  "log.deps.fallback": "Descarga directa falló, intentando {0}...",
   "quality.best": "Mejor Disponible",
   "quality.4k": "2160p (4K)",
   "quality.1440p": "1440p",

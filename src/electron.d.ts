@@ -19,6 +19,7 @@ export interface ElectronAPI {
     downloadYtDlp: () => Promise<void>
     downloadFFmpeg: () => Promise<void>
     downloadDeno: () => Promise<void>
+    updateYtDlpSelf: () => Promise<{ success: boolean; message: string }>
     openFolder: (type: DependencyType) => Promise<void>
     getYtDlpVersion: () => Promise<string>
     getYtDlpLatestVersion: () => Promise<string | null>

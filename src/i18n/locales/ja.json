@@ -146,6 +146,7 @@
   "log.ytdlp.error.start": "yt-dlp の起動に失敗: {0}",
   "log.deps.downloading": "{0} をダウンロード中...",
   "log.deps.installed": "{0} が正常にインストールされました",
+  "log.deps.fallback": "直接ダウンロードに失敗しました。{0} を試しています...",
   "quality.best": "最高品質",
   "quality.4k": "2160p (4K)",
   "quality.1440p": "1440p",

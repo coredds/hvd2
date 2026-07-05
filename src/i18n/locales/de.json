@@ -146,6 +146,7 @@
   "log.ytdlp.error.start": "yt-dlp konnte nicht gestartet werden: {0}",
   "log.deps.downloading": "{0} wird heruntergeladen...",
   "log.deps.installed": "{0} erfolgreich installiert",
+  "log.deps.fallback": "Direkter Download fehlgeschlagen, versuche {0}...",
   "quality.best": "Beste verfügbar",
   "quality.4k": "2160p (4K)",
   "quality.1440p": "1440p",

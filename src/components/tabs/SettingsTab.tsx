@@ -35,8 +35,19 @@ export default function SettingsTab() {
     appendLog(t('log.deps.downloading').replace('{0}', dep === 'ytdlp' ? 'yt-dlp' : dep === 'ffmpeg' ? 'FFmpeg' : 'Deno'))
     const api = window.electronAPI
     try {
-      if (dep === 'ytdlp') await api.deps.downloadYtDlp()
-      else if (dep === 'ffmpeg') await api.deps.downloadFFmpeg()
+      if (dep === 'ytdlp') {
+        try {
+          await api.deps.downloadYtDlp()
+        } catch (directErr: any) {
+          appendLog(`Direct download failed: ${directErr?.message || directErr}`)
+          appendLog(t('log.deps.fallback').replace('{0}', 'yt-dlp -U'))
+          const result = await api.deps.updateYtDlpSelf()
+          if (!result.success) {
+            throw new Error(`Update failed: ${result.message}`)
+          }
+          appendLog(`yt-dlp -U: ${result.message}`)
+        }
+      } else if (dep === 'ffmpeg') await api.deps.downloadFFmpeg()
       else await api.deps.downloadDeno()
 
       appendLog(t('log.deps.installed').replace('{0}', dep))
