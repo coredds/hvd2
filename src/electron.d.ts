@@ -6,11 +6,17 @@ export interface ElectronAPI {
     cancel: (id: string) => Promise<void>
     extractTitle: (url: string, browser?: string) => Promise<string>
     onProgress: (cb: (event: any, data: { id: string; progress: number }) => void) => void
+    offProgress: (cb: (event: any, data: { id: string; progress: number }) => void) => void
     onLog: (cb: (event: any, data: { id: string; line: string }) => void) => void
+    offLog: (cb: (event: any, data: { id: string; line: string }) => void) => void
     onStatus: (cb: (event: any, data: { id: string; key: string }) => void) => void
+    offStatus: (cb: (event: any, data: { id: string; key: string }) => void) => void
     onComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
+    offComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
     onError: (cb: (event: any, data: { id: string; message: string }) => void) => void
+    offError: (cb: (event: any, data: { id: string; message: string }) => void) => void
     onPaused: (cb: (event: any, data: { id: string }) => void) => void
+    offPaused: (cb: (event: any, data: { id: string }) => void) => void
   }
   deps: {
     checkYtDlp: () => Promise<{ available: boolean; version?: string; isRecent?: boolean }>

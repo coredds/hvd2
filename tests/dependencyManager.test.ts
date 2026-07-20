@@ -20,11 +20,12 @@ function resolveArchiveTool(platform: Platform, archivePath: string): string {
   return 'unzip'
 }
 
-function tempFileExtension(url: string, archivePath: string): string {
+function tempFileExtension(url: string, _archivePath: string): string {
   const isTarXz = url.endsWith('.tar.xz') || url.endsWith('.txz')
   if (isTarXz) return '.tar.xz'
-  const path = require('path')
-  return path.extname(new URL(url).pathname) || '.zip'
+  const pathname = new URL(url).pathname
+  const lastDot = pathname.lastIndexOf('.')
+  return lastDot > 0 ? pathname.slice(lastDot) : '.zip'
 }
 
 // Same matchers used in DependencyManager

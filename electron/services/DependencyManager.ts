@@ -1,6 +1,8 @@
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import http from 'http'
+import https from 'https'
 import { spawn } from 'child_process'
 import { app } from 'electron'
 
@@ -89,10 +91,6 @@ export class DependencyManager {
   }
 
   async download(type: DepType, onProgress?: (pct: number) => void): Promise<void> {
-    if (!isWindows()) {
-      // Non-Windows auto-download: attempt same URLs with platform variants
-    }
-
     const urls = getDownloadUrls()
     const url = urls[type]
     if (!url) throw new Error(`No download URL for ${type}`)
@@ -106,6 +104,7 @@ export class DependencyManager {
           fs.unlinkSync(dest)
         }
       } catch {
+        // Old binary may be locked; rename below will still use the temp file
       }
       try {
         fs.renameSync(tmpDest, dest)
@@ -113,6 +112,7 @@ export class DependencyManager {
         throw new Error(
           `Cannot replace yt-dlp.exe — file may be locked by antivirus or another process. ` +
           `Updated binary saved to ${tmpDest}. Try closing the app and renaming it manually.`,
+          { cause: e },
         )
       }
       if (!isWindows()) fs.chmodSync(dest, 0o755)
@@ -133,8 +133,6 @@ export class DependencyManager {
   }
 
   private downloadFile(url: string, dest: string, onProgress?: (pct: number) => void): Promise<void> {
-    const https = require('https')
-    const http = require('http')
     const userAgent = 'HVD-Video-Downloader/2'
 
     const resolveUrl = (requestUrl: string, maxRedirects: number = 5): Promise<string> => {
@@ -330,7 +328,9 @@ export class DependencyManager {
           const destPath = path.join(destDir, outName)
           const tmpPath = destPath + '.tmp'
           fs.copyFileSync(full, tmpPath)
-          try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath) } catch {}
+          try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath) } catch {
+            // Existing binary may be locked; the rename below will replace it atomically
+          }
           fs.renameSync(tmpPath, destPath)
           if (!isWindows()) fs.chmodSync(destPath, 0o755)
           return true

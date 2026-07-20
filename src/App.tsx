@@ -45,7 +45,6 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('status.ready')
   const [statusSpinner, setStatusSpinner] = useState(false)
   const [depsChecked, setDepsChecked] = useState(false)
-  const [missingDeps, setMissingDeps] = useState<string[]>([])
 
   useEffect(() => {
     appendLog(t('log.app.started'))
@@ -66,13 +65,17 @@ export default function App() {
     try {
       saved = await api.prefs.getAll()
       if (saved) setPrefs(saved)
-    } catch {}
+    } catch {
+      // Preferences may be unavailable during early startup
+    }
 
     // Apply language from saved preference or auto-detect
     try {
       const langPref = saved?.['app.language'] || 'auto'
       await resolveAndApplyLanguage(langPref)
-    } catch {}
+    } catch {
+      // Fall back to default language
+    }
 
     const missing: string[] = []
 
@@ -108,7 +111,6 @@ export default function App() {
       missing.push('Deno')
     }
 
-    setMissingDeps(missing)
     setDepsChecked(true)
 
     if (missing.length > 0) {

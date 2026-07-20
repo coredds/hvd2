@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCommand, buildYoutubeFormatString, isBestAvailable, isBestFormat } from '../electron/services/CommandBuilder'
+import { buildCommand, buildYoutubeFormatString, isBestAvailable } from '../electron/services/CommandBuilder'
 import type { DownloadItem, DownloadOptions } from '../electron/services/CommandBuilder'
 
 const ytUrl = 'https://www.youtube.com/watch?v=EpzDOtJpIk4'

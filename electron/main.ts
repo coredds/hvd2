@@ -150,7 +150,7 @@ ipcMain.handle('deps:download-deno', async () => {
   await deps.download('deno', () => {})
 })
 
-ipcMain.handle('deps:open-folder', async (_event, type: string) => {
+ipcMain.handle('deps:open-folder', async (_event, _type: string) => {
   shell.openPath(deps.getBinDirectory())
 })
 
@@ -168,7 +168,7 @@ ipcMain.handle('prefs:get', async (_event, key: string) => {
   return prefs.get(key)
 })
 
-ipcMain.handle('prefs:set', async (_event, key: string, value: any) => {
+ipcMain.handle('prefs:set', async (_event, key: string, value: unknown) => {
   prefs.set(key, value)
 })
 
@@ -193,7 +193,7 @@ ipcMain.handle('dialog:alert', async (_event, opts: { title: string; message: st
   const result = await dialog.showMessageBox(win, {
     title: opts.title,
     message: opts.message,
-    type: (opts.type as any) || 'info',
+    type: (opts.type as Electron.MessageBoxOptions['type']) || 'info',
     buttons: opts.buttons || ['OK'],
     defaultId: 0,
   })

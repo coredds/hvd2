@@ -29,7 +29,6 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
   const updateProgress = useDownloadStore((s) => s.updateProgress)
   const updateStatus = useDownloadStore((s) => s.updateStatus)
   const setTitle = useDownloadStore((s) => s.setTitle)
-  const setFilePath = useDownloadStore((s) => s.setFilePath)
   const setErrorMessage = useDownloadStore((s) => s.setErrorMessage)
   const appendLog = useLogStore((s) => s.appendLog)
 
@@ -103,44 +102,62 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       }
     }).catch(() => setYtDlpStatus('not-found'))
 
-    api.downloads.onProgress((_event, { id, progress }) => {
+    const onProgress = (_event: unknown, { id, progress }: { id: string; progress: number }) => {
       updateProgress(id, progress)
-    })
+    }
 
-    api.downloads.onLog((_event, { line }) => {
+    const onLog = (_event: unknown, { line }: { id: string; line: string }) => {
       appendLog(line)
-    })
+    }
 
-    api.downloads.onStatus((_event, { key }) => {
+    const onStatus = (_event: unknown, { key }: { id: string; key: string }) => {
       setStatusMessage(key)
-    })
+    }
 
-    api.downloads.onComplete((_event, { id }) => {
+    const onComplete = (_event: unknown, { id }: { id: string; filePath: string }) => {
       updateStatus(id, 'COMPLETED')
       setStatusMessage('status.download.completed')
       setStatusSpinner(false)
       setTimeout(() => setStatusMessage('status.ready'), 3000)
-    })
+    }
 
-    api.downloads.onError((_event, { id, message }) => {
+    const onError = (_event: unknown, { id, message }: { id: string; message: string }) => {
       updateStatus(id, 'ERROR')
       setErrorMessage(id, message)
       setStatusMessage('status.error')
       setStatusSpinner(false)
       appendLog(t('downloads.error.log').replace('{0}', message))
-      
-      // If auth error, offer login
+
+      // If auth error, log a tip
       if (/logged.in|cookies|403|Forbidden|authentication/i.test(message)) {
         const item = useDownloadStore.getState().items.find(i => i.id === id)
         if (item) {
           appendLog(t('downloads.error.auth.tip'))
         }
       }
-    })
+    }
 
-    api.downloads.onPaused((_event, { id }) => {
+    const onPaused = (_event: unknown, { id }: { id: string }) => {
       updateStatus(id, 'PAUSED')
-    })
+    }
+
+    api.downloads.onProgress(onProgress)
+    api.downloads.onLog(onLog)
+    api.downloads.onStatus(onStatus)
+    api.downloads.onComplete(onComplete)
+    api.downloads.onError(onError)
+    api.downloads.onPaused(onPaused)
+
+    return () => {
+      console.log('[DownloadsTab] removing IPC listeners')
+      api.downloads.offProgress(onProgress)
+      api.downloads.offLog(onLog)
+      api.downloads.offStatus(onStatus)
+      api.downloads.offComplete(onComplete)
+      api.downloads.offError(onError)
+      api.downloads.offPaused(onPaused)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const addToQueue = async () => {
@@ -201,7 +218,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
         }
       }
 
-      let formatStr = ''
+      let formatStr: string
       if (activeSubtab === 'audio') {
         formatStr = `audio-${audioFormat}`
       } else {

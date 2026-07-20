@@ -49,6 +49,27 @@ export interface Preferences {
   'browser.cookies.source': string
 }
 
+export const DEFAULT_PREFERENCES: Preferences = {
+  'audio.format': 'mp3',
+  'audio.quality': '192k',
+  'video.quality': '1080p',
+  'video.format': 'mp4',
+  'video.audio.format': 'aac',
+  'video.output.directory': '',
+  'audio.output.directory': '',
+  'embed.subtitles': false,
+  'embed.thumbnail': true,
+  'add.metadata': false,
+  'embed.thumbnail.audio': true,
+  'add.metadata.audio': true,
+  'download.type.audio': false,
+  'use.separate.folders': true,
+  'app.language': 'auto',
+  'app.theme': 'auto',
+  'browser.cookies.enabled': true,
+  'browser.cookies.source': 'firefox',
+}
+
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export type DependencyType = 'ytdlp' | 'ffmpeg' | 'deno'

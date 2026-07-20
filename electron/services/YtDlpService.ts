@@ -5,27 +5,12 @@ import os from 'os'
 import https from 'https'
 import { BrowserWindow } from 'electron'
 import { DependencyManager } from './DependencyManager'
-import { buildCommand, buildYoutubeFormatString, buildVideoFormatString, isBestAvailable, isWorstAvailable, isBestFormat, DownloadItem, DownloadOptions } from './CommandBuilder'
+import { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat, DownloadItem, DownloadOptions } from './CommandBuilder'
+import { parseDownloadLine, TEMP_FILE_REs, THUMBNAIL_EXT_RE } from './DownloadParser'
 
 // Re-export types so tests can import from here
 export type { DownloadItem, DownloadOptions }
 export { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat }
-
-const PROGRESS_RE = /(\d+(?:\.\d+)?)%/
-const DESTINATION_RE = /\[download\] Destination: (.+)/
-const FINAL_DESTINATION_RE = /\[Merger\] Merging formats into "(.+)"/
-const THUMBNAIL_RE = /\[download\] (.+\.(jpg|jpeg|png|webp)) has already been downloaded/
-const THUMBNAIL_WRITING_RE = /\[info\] Writing video thumbnail (.+\.(jpg|jpeg|png|webp)) to: (.+)/
-const FFMPEG_RE = /\[ffmpeg\]/
-const POST_PROCESS_RE = /\[PostProcessor\]/
-
-const TEMP_FILE_REs = [
-  /\.f\d+\.(mp4|webm|m4a|aac)$/,
-  /\.temp\.(mp4|webm|m4a)$/,
-  /\.part$/,
-  /\.ytdl$/,
-]
-const THUMBNAIL_EXT_RE = /\.(png|webp|jpg|jpeg)$/
 
 export class YtDlpService {
   private ytDlpPath = 'yt-dlp'
@@ -297,7 +282,7 @@ export class YtDlpService {
 
     // Capture stderr for error reporting
 let stderrText = ''
-    let stderrBuf: Buffer[] = []
+    const stderrBuf: Buffer[] = []
     child.stderr!.on('data', (chunk: Buffer) => {
       stderrBuf.push(chunk)
     })
@@ -334,49 +319,30 @@ let stderrText = ''
         // Forward to renderer log
         push('download:log', { id: item.id, line })
 
-        // Post-processing detection
-        if (FFMPEG_RE.test(line) || POST_PROCESS_RE.test(line)) {
-          if (!inPostProcessing) {
-            inPostProcessing = true
-            push('download:progress', { id: item.id, progress: 0.95 })
-            push('download:status', { id: item.id, key: 'status.reencoding' })
+        const parsed = parseDownloadLine(line, inPostProcessing, options.embedThumbnail)
+        if (parsed.enteredPostProcessing) {
+          inPostProcessing = true
+          push('download:progress', { id: item.id, progress: parsed.progress })
+          push('download:status', { id: item.id, key: parsed.statusKey })
+        }
+
+        if (parsed.progress !== undefined && !parsed.enteredPostProcessing) {
+          push('download:progress', { id: item.id, progress: parsed.progress })
+        }
+
+        if (parsed.destination) {
+          downloadedFilePath = parsed.destination.path
+          if (parsed.destination.isIntermediate) {
+            tempFiles.push(parsed.destination.path)
           }
         }
 
-        // Download progress
-        const progMatch = line.match(PROGRESS_RE)
-        if (progMatch && !inPostProcessing) {
-          const pct = parseFloat(progMatch[1]) / 100
-          push('download:progress', { id: item.id, progress: pct })
+        for (const thumb of parsed.thumbnails) {
+          tempFiles.push(thumb)
         }
 
-        // Destination file
-        const destMatch = line.match(DESTINATION_RE)
-        if (destMatch) {
-          downloadedFilePath = destMatch[1]
-          const isTemp = TEMP_FILE_REs.some((re) => re.test(downloadedFilePath!))
-          const isThumbnail = THUMBNAIL_EXT_RE.test(downloadedFilePath!)
-          if (isTemp || (options.embedThumbnail && isThumbnail)) {
-            tempFiles.push(downloadedFilePath)
-          }
-        }
-
-        // Thumbnail already cached
-        let thumbMatch = line.match(THUMBNAIL_RE)
-        if (thumbMatch && options.embedThumbnail) {
-          tempFiles.push(thumbMatch[1])
-        }
-
-        // Thumbnail being written
-        thumbMatch = line.match(THUMBNAIL_WRITING_RE)
-        if (thumbMatch && options.embedThumbnail) {
-          tempFiles.push(thumbMatch[3])
-        }
-
-        // Final merged path
-        const finalMatch = line.match(FINAL_DESTINATION_RE)
-        if (finalMatch) {
-          finalFilePath = finalMatch[1]
+        if (parsed.finalFilePath) {
+          finalFilePath = parsed.finalFilePath
           push('download:status', { id: item.id, key: 'status.merging' })
         }
       }
@@ -441,7 +407,7 @@ child.on('error', (err) => {
   }
 
   cancelAll() {
-    for (const [id, child] of this.activeProcesses) {
+    for (const child of this.activeProcesses.values()) {
       if (!child.killed) child.kill()
     }
     this.activeProcesses.clear()
@@ -473,7 +439,9 @@ child.on('error', (err) => {
       const nameWithoutExt = finalFilePath.substring(0, lastDot)
       const thumbPath = nameWithoutExt + '.jpg'
       if (fs.existsSync(thumbPath)) {
-        try { fs.unlinkSync(thumbPath) } catch {}
+        try { fs.unlinkSync(thumbPath) } catch {
+          // Thumbnail cleanup is best-effort
+        }
       }
     }
   }
@@ -498,16 +466,22 @@ child.on('error', (err) => {
 
         if (shouldDelete) {
           const fullPath = path.join(dir, entry)
-          try { fs.unlinkSync(fullPath) } catch {}
+          try { fs.unlinkSync(fullPath) } catch {
+            // Intermediate file cleanup is best-effort
+          }
         }
       }
-    } catch {}
+    } catch {
+      // Ignore directory read errors during cleanup
+    }
   }
 
   private deleteFileIfExists(filePath: string, finalFilePath: string | null) {
     if (filePath === finalFilePath) return
     if (fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath) } catch {}
+      try { fs.unlinkSync(filePath) } catch {
+        // Best-effort deletion
+      }
     }
   }
 }

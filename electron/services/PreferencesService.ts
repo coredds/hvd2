@@ -1,31 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
+import { DEFAULT_PREFERENCES } from '../../src/types'
 
 export class PreferencesService {
   private prefsPath: string
   private data: Record<string, any> = {}
-
-  private static readonly DEFAULTS: Record<string, any> = {
-    'audio.format': 'mp3',
-    'audio.quality': '192k',
-    'video.quality': '1080p',
-    'video.format': 'mp4',
-    'video.audio.format': 'aac',
-    'video.output.directory': '',
-    'audio.output.directory': '',
-    'embed.subtitles': false,
-    'embed.thumbnail': true,
-    'add.metadata': false,
-    'embed.thumbnail.audio': true,
-    'add.metadata.audio': true,
-    'download.type.audio': false,
-    'use.separate.folders': true,
-    'app.language': 'auto',
-    'app.theme': 'auto',
-    'browser.cookies.enabled': true,
-    'browser.cookies.source': 'firefox',
-  }
 
   constructor() {
     const userDataPath = app.getPath('userData')
@@ -47,12 +27,14 @@ export class PreferencesService {
   save() {
     try {
       fs.writeFileSync(this.prefsPath, JSON.stringify(this.data, null, 2), 'utf8')
-    } catch {}
+    } catch {
+      // Disk write failures are non-fatal; preferences will be recreated next run
+    }
   }
 
   get(key: string, defaultValue?: any): any {
     if (key in this.data) return this.data[key]
-    if (key in PreferencesService.DEFAULTS) return PreferencesService.DEFAULTS[key]
+    if (key in DEFAULT_PREFERENCES) return (DEFAULT_PREFERENCES as Record<string, any>)[key]
     return defaultValue ?? null
   }
 
@@ -71,6 +53,6 @@ export class PreferencesService {
   }
 
   getAll(): Record<string, any> {
-    return { ...PreferencesService.DEFAULTS, ...this.data }
+    return { ...DEFAULT_PREFERENCES, ...this.data }
   }
 }

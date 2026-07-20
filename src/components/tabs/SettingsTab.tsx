@@ -43,7 +43,7 @@ export default function SettingsTab() {
           appendLog(t('log.deps.fallback').replace('{0}', 'yt-dlp -U'))
           const result = await api.deps.updateYtDlpSelf()
           if (!result.success) {
-            throw new Error(`Update failed: ${result.message}`)
+            throw new Error(`Update failed: ${result.message}`, { cause: directErr })
           }
           appendLog(`yt-dlp -U: ${result.message}`)
         }

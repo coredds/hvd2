@@ -49,7 +49,9 @@ export async function resolveAndApplyLanguage(langPref: string): Promise<void> {
         i18n.changeLanguage(osLocaleToLang(locale))
         return
       }
-    } catch {}
+    } catch {
+      // Electron API may be unavailable in tests; fall back to English
+    }
     i18n.changeLanguage('en')
     return
   }
