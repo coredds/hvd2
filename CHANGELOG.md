@@ -1,6 +1,11 @@
 # Changelog
 
-## [2.0.4] - Unreleased
+## [2.0.5] - Unreleased
+
+### Changed
+- Project hygiene: added ESLint, unified the preload build, centralized default preferences, cleaned up renderer IPC listeners, extracted `DownloadParser` for testability, and added `AGENTS.md`.
+
+## [2.0.4] - 2026-07-20
 
 ### Fixed
 - yt-dlp update download failing on Windows due to file locking (antivirus/Defender). Now downloads to a temp file, deletes the old binary, then renames — with `yt-dlp -U` as automatic fallback.
