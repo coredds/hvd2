@@ -1,9 +1,16 @@
 # Changelog
 
-## [2.0.5] - Unreleased
+## [2.0.6] - 2026-08-03
+
+### Fixed
+- Audio and video downloads sharing the same output directory; queued items now use their configured `video.output.directory` or `audio.output.directory`.
+- Per-item download option building so the active tab no longer changes queued downloads.
+
+### Added
+- `src/lib/buildDownloadOptions` pure helper for building per-item download options, with tests.
 
 ### Changed
-- Project hygiene: added ESLint, unified the preload build, centralized default preferences, cleaned up renderer IPC listeners, extracted `DownloadParser` for testability, and added `AGENTS.md`.
+- Project hygiene (2.0.5): added ESLint, unified the preload build, centralized default preferences, cleaned up renderer IPC listeners, extracted `DownloadParser` for testability, and added `AGENTS.md`.
 
 ## [2.0.4] - 2026-07-20
 
