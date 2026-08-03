@@ -5,7 +5,7 @@ import type { DownloadItem, DownloadStatus } from '../types'
 
 interface DownloadStore {
   items: DownloadItem[]
-  addUrls: (urls: { url: string; noPlaylist: boolean; format: string }[]) => void
+  addUrls: (urls: { url: string; noPlaylist: boolean; format: string; audioOnly: boolean }[]) => void
   removeItems: (ids: string[]) => void
   updateProgress: (id: string, progress: number) => void
   updateStatus: (id: string, status: DownloadStatus) => void
@@ -22,7 +22,7 @@ export const useDownloadStore = create<DownloadStore>((set) => ({
     set((state) => {
       const existingUrls = new Set(state.items.map((i) => i.url))
       const newItems: DownloadItem[] = []
-      for (const { url, noPlaylist, format } of urls) {
+      for (const { url, noPlaylist, format, audioOnly } of urls) {
         if (existingUrls.has(url)) {
           const existing = state.items.find((i) => i.url === url)
           if (existing?.status === 'COMPLETED') continue
@@ -33,6 +33,7 @@ export const useDownloadStore = create<DownloadStore>((set) => ({
           url,
           title: i18n.t('general.unknown.title'),
           format,
+          audioOnly,
           status: 'QUEUED',
           progress: 0,
           errorMessage: '',

@@ -5,6 +5,7 @@ export interface DownloadItem {
   url: string
   title: string
   format: string
+  audioOnly: boolean
   status: DownloadStatus
   progress: number
   errorMessage: string

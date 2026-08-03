@@ -8,7 +8,7 @@ import QueueControls from '../downloads/QueueControls'
 import { useDownloadStore } from '../../stores/downloadStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useLogStore } from '../../stores/logStore'
-import type { DownloadOptions } from '../../types'
+import { buildDownloadOptionsForItem } from '../../lib/buildDownloadOptions'
 
 interface Props {
   setStatusMessage: (key: string) => void
@@ -62,26 +62,24 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
     if (prefs['audio.output.directory']) setAudioOutputDir(prefs['audio.output.directory'])
   }, [prefs['video.output.directory'], prefs['audio.output.directory']])
 
-  const getOutputDir = useCallback(() => {
-    return activeSubtab === 'audio' ? audioOutputDir : videoOutputDir
-  }, [activeSubtab, audioOutputDir, videoOutputDir])
-
-  const buildDownloadOptions = useCallback((): DownloadOptions => ({
-    audioOnly: activeSubtab === 'audio',
+  const buildCurrentOptionsParams = useCallback(() => ({
     audioFormat,
     audioQuality,
     videoQuality,
     videoFormat,
     videoAudioFormat,
-    outputDirectory: getOutputDir(),
-    embedSubtitles: activeSubtab === 'video' ? embedSubtitles : false,
-    embedThumbnail: activeSubtab === 'audio' ? embedThumbnailA : embedThumbnailV,
-    addMetadata: activeSubtab === 'audio' ? addMetadataA : addMetadataV,
+    audioOutputDir,
+    videoOutputDir,
+    embedSubtitles,
+    embedThumbnailV,
+    embedThumbnailA,
+    addMetadataV,
+    addMetadataA,
     useBrowserCookies: prefs['browser.cookies.enabled'],
     browserSource: prefs['browser.cookies.source'],
   }), [
-    activeSubtab, audioFormat, audioQuality, videoQuality, videoFormat, videoAudioFormat,
-    getOutputDir, embedSubtitles, embedThumbnailV, embedThumbnailA,
+    audioFormat, audioQuality, videoQuality, videoFormat, videoAudioFormat,
+    audioOutputDir, videoOutputDir, embedSubtitles, embedThumbnailV, embedThumbnailA,
     addMetadataV, addMetadataA, prefs['browser.cookies.enabled'], prefs['browser.cookies.source'],
   ])
 
@@ -225,7 +223,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
         formatStr = `video-${videoQuality} (${videoFormat})`
       }
 
-      addUrls([{ url, noPlaylist, format: formatStr }])
+      addUrls([{ url, noPlaylist, format: formatStr, audioOnly: activeSubtab === 'audio' }])
       added++
 
       setStatusMessage('status.extracting.title')
@@ -275,7 +273,8 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       return
     }
 
-    const hasThumbnail = (activeSubtab === 'audio' ? embedThumbnailA : embedThumbnailV)
+    const optionParams = buildCurrentOptionsParams()
+    const hasThumbnail = queued.some((item) => buildDownloadOptionsForItem(item, optionParams).embedThumbnail)
     if (hasThumbnail) {
       const ffmpegOk = await window.electronAPI.deps.checkFFmpeg()
       if (!ffmpegOk) {
@@ -289,11 +288,11 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       }
     }
 
-    const options = buildDownloadOptions()
     let queuedCount = 0
 
     for (const item of queued) {
       updateStatus(item.id, 'DOWNLOADING')
+      const options = buildDownloadOptionsForItem(item, optionParams)
       window.electronAPI.downloads.start(item, options)
       queuedCount++
     }

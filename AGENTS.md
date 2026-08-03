@@ -22,6 +22,7 @@ electron/           # Main process code
   services/         # yt-dlp wrapper, dependency manager, preferences, command builder
 src/                # React renderer
   components/       # UI components
+  lib/              # Pure, unit-testable helpers shared by components
   stores/           # Zustand stores
   i18n/             # Translations
   styles/           # Tailwind + CSS variables
@@ -45,7 +46,7 @@ npm run lint         # ESLint on .ts/.tsx
 
 - Use TypeScript strict mode.
 - Prefer explicit types; use `unknown` over `any` when possible.
-- Keep pure business logic (e.g., `CommandBuilder`, `DownloadParser`) out of React components so it is unit-testable.
+- Keep pure business logic (e.g., `CommandBuilder`, `DownloadParser`, `src/lib/buildDownloadOptions`) out of React components so it is unit-testable.
 - IPC handlers live in `electron/main.ts`;_renderer side uses `window.electronAPI`.
 - Empty `catch` blocks should include a comment explaining why the error is safe to ignore.
 - Shared preference defaults live in `src/types.ts` (`DEFAULT_PREFERENCES`).

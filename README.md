@@ -9,6 +9,7 @@ video and audio content. Built with Electron and React.
 
 - Download video in multiple formats and quality levels
 - Download audio only with format and bitrate options
+- Separate output folders for video and audio downloads
 - Queue multiple downloads with pause, resume, and cancel
 - Embed subtitles and thumbnails
 - Multi-language support (English, German, Spanish, Italian, Japanese, Portuguese)
