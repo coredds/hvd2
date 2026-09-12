@@ -150,6 +150,16 @@ describe('CommandBuilder', () => {
       expect(args.indexOf('--cookies-from-browser')).toBeLessThan(args.indexOf(ytUrl))
     })
 
+    it('defaults to chrome when browser source is empty', () => {
+      const args = build(baseItem, { useBrowserCookies: true, browserSource: '' })
+      expect(findFlag(args, '--cookies-from-browser')).toBe('chrome')
+    })
+
+    it('defaults to chrome when browser source is undefined', () => {
+      const args = build(baseItem, { useBrowserCookies: true })
+      expect(findFlag(args, '--cookies-from-browser')).toBe('chrome')
+    })
+
     it('audio-only YouTube adds bestaudio format', () => {
       const args = build(baseItem, { audioOnly: true })
       const fmt = findFlag(args, '-f')

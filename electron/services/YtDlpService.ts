@@ -5,8 +5,9 @@ import os from 'os'
 import https from 'https'
 import { BrowserWindow } from 'electron'
 import { DependencyManager } from './DependencyManager'
-import { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat, DownloadItem, DownloadOptions } from './CommandBuilder'
+import { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat, normalizeBrowserSource, DownloadItem, DownloadOptions } from './CommandBuilder'
 import { parseDownloadLine, TEMP_FILE_REs, THUMBNAIL_EXT_RE } from './DownloadParser'
+import { stripCookieArgs, isBrowserCookieError } from './cookieFallback'
 
 // Re-export types so tests can import from here
 export type { DownloadItem, DownloadOptions }
@@ -250,7 +251,7 @@ export class YtDlpService {
   // ─── Title extraction ───────────────────────────────────────
 
   async extractTitle(url: string, browserSource?: string): Promise<string> {
-    const browser = browserSource || 'firefox'
+    const browser = browserSource ? normalizeBrowserSource(browserSource) : null
     return new Promise((resolve) => {
       const tryExtract = (args: string[]) => {
         const child = this.spawnYtDlp(args)
@@ -261,14 +262,17 @@ export class YtDlpService {
           if (code === 0 && title && !title.startsWith('ERROR:')) {
             resolve(title)
           } else if (args.includes('--cookies-from-browser')) {
-            tryExtract(args.filter(a => a !== '--cookies-from-browser' && a !== browser))
+            tryExtract(stripCookieArgs(args))
           } else {
             resolve('Unknown Title')
           }
         })
         child.on('error', () => resolve('Unknown Title'))
       }
-      tryExtract(['--get-title', '--no-playlist', '--cookies-from-browser', browser, url])
+      const args = ['--get-title', '--no-playlist']
+      if (browser) args.push('--cookies-from-browser', browser)
+      args.push(url)
+      tryExtract(args)
     })
   }
 
@@ -278,6 +282,10 @@ export class YtDlpService {
     const args = buildCommand(item, options, this.getFFmpegPath(), this.outputDir)
     console.log('[YtDlpService] starting download with yt-dlp path:', this.ytDlpPath)
     console.log('[YtDlpService] command:', this.ytDlpPath, args.join(' '))
+    return this.runDownload(item, options, args, false)
+  }
+
+  private runDownload(item: DownloadItem, options: DownloadOptions, args: string[], retriedWithoutCookies: boolean): ChildProcess {
     const child = this.spawnYtDlp(args)
 
     // Capture stderr for error reporting
@@ -356,6 +364,10 @@ let stderrText = ''
         const bestPath = finalFilePath || downloadedFilePath
         await this.cleanupIntermediateFiles(tempFiles, finalFilePath, options.embedThumbnail)
         push('download:complete', { id: item.id, filePath: bestPath || '' })
+      } else if (!retriedWithoutCookies && args.includes('--cookies-from-browser') && isBrowserCookieError(stderrText)) {
+        console.log('[YtDlpService] browser cookie extraction failed, retrying without cookies')
+        push('download:log', { id: item.id, line: 'Browser cookies unavailable; retrying without authentication...' })
+        this.runDownload(item, options, stripCookieArgs(args), true)
       } else {
         const errMsg = stderrText.trim()
           ? stderrText.trim().split('\n').slice(-2).join(' | ')

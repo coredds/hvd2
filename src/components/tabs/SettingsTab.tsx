@@ -274,7 +274,7 @@ export default function SettingsTab() {
               <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{t('settings.browser.cookies.source.label')}</span>
               <select
                 style={selectStyle}
-                value={prefs['browser.cookies.source']}
+                value={prefs['browser.cookies.source'] || 'chrome'}
                 disabled={!prefs['browser.cookies.enabled']}
                 onChange={(e) => {
                   const source = e.target.value

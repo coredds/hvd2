@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildDownloadOptionsForItem } from '../src/lib/buildDownloadOptions'
 import type { DownloadItem } from '../src/types'
+import { DEFAULT_PREFERENCES } from '../src/types'
 
 const baseParams = {
   audioFormat: 'mp3',
@@ -69,5 +70,10 @@ describe('buildDownloadOptionsForItem', () => {
     const options = buildDownloadOptionsForItem(item, baseParams)
     expect(options.useBrowserCookies).toBe(true)
     expect(options.browserSource).toBe('firefox')
+  })
+
+  it('defaults browser cookie source to chrome and enabled to true', () => {
+    expect(DEFAULT_PREFERENCES['browser.cookies.source']).toBe('chrome')
+    expect(DEFAULT_PREFERENCES['browser.cookies.enabled']).toBe(true)
   })
 })
