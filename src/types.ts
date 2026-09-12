@@ -26,7 +26,6 @@ export interface DownloadOptions {
   addMetadata: boolean
   useBrowserCookies: boolean
   browserSource: string
-  cookiesFile?: string
 }
 
 export interface Preferences {
@@ -68,7 +67,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   'app.language': 'auto',
   'app.theme': 'auto',
   'browser.cookies.enabled': true,
-  'browser.cookies.source': 'firefox',
+  'browser.cookies.source': 'chrome',
 }
 
 export type ThemeMode = 'auto' | 'light' | 'dark'

@@ -63,4 +63,11 @@ describe('buildDownloadOptionsForItem', () => {
     expect(options.addMetadata).toBe(false)
     expect(options.embedSubtitles).toBe(false)
   })
+
+  it('passes browser cookie options through', () => {
+    const item = { audioOnly: false } as Pick<DownloadItem, 'audioOnly'>
+    const options = buildDownloadOptionsForItem(item, baseParams)
+    expect(options.useBrowserCookies).toBe(true)
+    expect(options.browserSource).toBe('firefox')
+  })
 })
