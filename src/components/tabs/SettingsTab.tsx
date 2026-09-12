@@ -254,6 +254,47 @@ export default function SettingsTab() {
           </select>
         </div>
 
+        <div className="form-row">
+          <div className="form-label">{t('settings.browser.cookies.title')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="form-help">{t('settings.browser.cookies.explanation')}</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={prefs['browser.cookies.enabled']}
+                onChange={(e) => {
+                  const enabled = e.target.checked
+                  setPrefs({ 'browser.cookies.enabled': enabled })
+                  window.electronAPI.prefs.set('browser.cookies.enabled', enabled).catch(() => {})
+                }}
+              />
+              {t('settings.browser.cookies.enable')}
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{t('settings.browser.cookies.source.label')}</span>
+              <select
+                style={selectStyle}
+                value={prefs['browser.cookies.source']}
+                disabled={!prefs['browser.cookies.enabled']}
+                onChange={(e) => {
+                  const source = e.target.value
+                  setPrefs({ 'browser.cookies.source': source })
+                  window.electronAPI.prefs.set('browser.cookies.source', source).catch(() => {})
+                }}
+              >
+                <option value="chrome">Chrome</option>
+                <option value="brave">Brave</option>
+                <option value="chromium">Chromium</option>
+                <option value="edge">Edge</option>
+                <option value="firefox">Firefox</option>
+                <option value="opera">Opera</option>
+                <option value="vivaldi">Vivaldi</option>
+              </select>
+            </div>
+            <div className="form-help">{t('settings.browser.cookies.note')}</div>
+          </div>
+        </div>
+
         {/* Authentication */}
         <div className="card" style={{ padding: 12, background: 'var(--bg-surface-alt)', marginTop: 12 }}>
           <div className="section-title">{t('settings.auth.title')}</div>
