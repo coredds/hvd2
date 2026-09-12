@@ -44,7 +44,6 @@ export interface ElectronAPI {
     openPath: (path: string) => Promise<void>
     restart: () => Promise<void>
     loginUrl: (url: string, title?: string) => Promise<boolean>
-    getCookiesFile: () => Promise<string | null>
   }
 }
 

@@ -62,6 +62,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openPath: (path: string) => ipcRenderer.invoke('app:open-path', path),
     restart: () => ipcRenderer.invoke('app:restart'),
     loginUrl: (url: string, title?: string) => ipcRenderer.invoke('app:login-url', url, title),
-    getCookiesFile: () => ipcRenderer.invoke('app:get-cookies-file'),
   },
 })
