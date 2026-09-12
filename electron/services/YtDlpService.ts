@@ -8,6 +8,7 @@ import { DependencyManager } from './DependencyManager'
 import { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat, normalizeBrowserSource, DownloadItem, DownloadOptions } from './CommandBuilder'
 import { parseDownloadLine, TEMP_FILE_REs, THUMBNAIL_EXT_RE } from './DownloadParser'
 import { stripCookieArgs, isBrowserCookieError } from './cookieFallback'
+import { classifyDownloadError, summarizeError } from './ErrorClassifier'
 
 // Re-export types so tests can import from here
 export type { DownloadItem, DownloadOptions }
@@ -276,6 +277,29 @@ export class YtDlpService {
     })
   }
 
+  testBrowserCookies(source: string): Promise<{ ok: boolean; detail: string }> {
+    const browser = normalizeBrowserSource(source)
+    return new Promise((resolve) => {
+      const args = ['--cookies-from-browser', browser, '--simulate', '--skip-download', '--no-warnings', 'https://www.youtube.com']
+      const child = this.spawnYtDlp(args)
+      const errBuf: Buffer[] = []
+      child.stderr!.on('data', (d: Buffer) => errBuf.push(d))
+      const timer = setTimeout(() => {
+        child.kill()
+        resolve({ ok: false, detail: 'timed out' })
+      }, 20000)
+      child.on('close', () => {
+        clearTimeout(timer)
+        const stderr = this.decodeOutput(Buffer.concat(errBuf))
+        resolve({ ok: !isBrowserCookieError(stderr), detail: summarizeError(stderr) })
+      })
+      child.on('error', (err) => {
+        clearTimeout(timer)
+        resolve({ ok: false, detail: err.message })
+      })
+    })
+  }
+
   // ─── Download ───────────────────────────────────────────────
 
   startDownload(item: DownloadItem, options: DownloadOptions): ChildProcess {
@@ -369,19 +393,19 @@ let stderrText = ''
         push('download:log', { id: item.id, line: 'Browser cookies unavailable; retrying without authentication...' })
         this.runDownload(item, options, stripCookieArgs(args), true)
       } else {
-        const errMsg = stderrText.trim()
-          ? stderrText.trim().split('\n').slice(-2).join(' | ')
-          : `exit code ${code}`
+        const message = summarizeError(stderrText) || `exit code ${code}`
         push('download:error', {
           id: item.id,
-          message: errMsg,
+          message,
+          kind: classifyDownloadError(stderrText),
+          cookiesFailed: retriedWithoutCookies,
         })
       }
     })
 
 child.on('error', (err) => {
       this.activeProcesses.delete(item.id)
-      push('download:error', { id: item.id, message: `Failed to start yt-dlp: ${err.message}` })
+      push('download:error', { id: item.id, message: `Failed to start yt-dlp: ${err.message}`, kind: 'unknown', cookiesFailed: false })
     })
 
     return child

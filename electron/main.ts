@@ -1,8 +1,11 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu, screen } from 'electron'
 import path from 'path'
+import { spawn } from 'child_process'
+import fs from 'fs'
 import { YtDlpService } from './services/YtDlpService'
 import { DependencyManager } from './services/DependencyManager'
 import { PreferencesService } from './services/PreferencesService'
+import { resolveBrowserExecutable } from './services/BrowserLauncher'
 import type { DownloadItem, DownloadOptions } from '../src/types'
 
 let win: BrowserWindow | null = null
@@ -144,6 +147,7 @@ ipcMain.handle('prefs:get', async (_event, key: string) => {
 
 ipcMain.handle('prefs:set', async (_event, key: string, value: unknown) => {
   prefs.set(key, value)
+  prefs.save()
 })
 
 ipcMain.handle('prefs:getAll', async () => {
@@ -187,6 +191,28 @@ ipcMain.handle('app:open-path', async (_event, filePath: string) => {
 ipcMain.handle('app:restart', async () => {
   app.relaunch()
   app.exit(0)
+})
+
+ipcMain.handle('app:get-version', async () => {
+  return app.getVersion()
+})
+
+ipcMain.handle('app:open-provider', async (_event, url: string, source: string) => {
+  const exe = resolveBrowserExecutable(source, process.platform, fs.existsSync, process.env)
+  if (exe) {
+    try {
+      spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref()
+      return true
+    } catch {
+      // Fall back to the system browser if the selected executable cannot launch
+    }
+  }
+  await shell.openExternal(url)
+  return true
+})
+
+ipcMain.handle('auth:test-cookies', async (_event, source: string) => {
+  return ytDlp.testBrowserCookies(source)
 })
 
 // ─── IPC: YouTube Authentication ─────────────────────────────────

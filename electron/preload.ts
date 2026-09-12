@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getYtDlpVersion: () => ipcRenderer.invoke('deps:get-ytdlp-version'),
     getYtDlpLatestVersion: () => ipcRenderer.invoke('deps:get-ytdlp-latest-version'),
   },
+  auth: {
+    testCookies: (source: string) => ipcRenderer.invoke('auth:test-cookies', source),
+  },
   prefs: {
     get: (key: string) => ipcRenderer.invoke('prefs:get', key),
     set: (key: string, value: any) => ipcRenderer.invoke('prefs:set', key, value),
@@ -62,5 +65,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openPath: (path: string) => ipcRenderer.invoke('app:open-path', path),
     restart: () => ipcRenderer.invoke('app:restart'),
     loginUrl: (url: string, title?: string) => ipcRenderer.invoke('app:login-url', url, title),
+    openProvider: (url: string, source: string) => ipcRenderer.invoke('app:open-provider', url, source),
+    getVersion: () => ipcRenderer.invoke('app:get-version'),
   },
 })

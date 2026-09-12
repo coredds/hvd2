@@ -1,4 +1,4 @@
-import type { DownloadItem, DownloadOptions, DependencyType } from './types'
+import type { DownloadItem, DownloadOptions, DependencyType, DownloadErrorKind } from './types'
 
 export interface ElectronAPI {
   downloads: {
@@ -13,8 +13,8 @@ export interface ElectronAPI {
     offStatus: (cb: (event: any, data: { id: string; key: string }) => void) => void
     onComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
     offComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
-    onError: (cb: (event: any, data: { id: string; message: string }) => void) => void
-    offError: (cb: (event: any, data: { id: string; message: string }) => void) => void
+    onError: (cb: (event: any, data: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => void) => void
+    offError: (cb: (event: any, data: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => void) => void
     onPaused: (cb: (event: any, data: { id: string }) => void) => void
     offPaused: (cb: (event: any, data: { id: string }) => void) => void
   }
@@ -30,6 +30,9 @@ export interface ElectronAPI {
     getYtDlpVersion: () => Promise<string>
     getYtDlpLatestVersion: () => Promise<string | null>
   }
+  auth: {
+    testCookies: (source: string) => Promise<{ ok: boolean; detail: string }>
+  }
   prefs: {
     get: (key: string) => Promise<any>
     set: (key: string, value: any) => Promise<void>
@@ -44,6 +47,8 @@ export interface ElectronAPI {
     openPath: (path: string) => Promise<void>
     restart: () => Promise<void>
     loginUrl: (url: string, title?: string) => Promise<boolean>
+    openProvider: (url: string, source: string) => Promise<boolean>
+    getVersion: () => Promise<string>
   }
 }
 
