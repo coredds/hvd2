@@ -34,3 +34,6 @@ package-lock.json.bak
 
 # Worktrees
 .worktrees/
+
+# Superpowers workflow docs
+docs/superpowers/
