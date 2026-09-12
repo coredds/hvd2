@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0] - 2026-09-12
+
+### Added
+- Browser-cookie authentication for yt-dlp via `--cookies-from-browser`, configurable in Settings. The browser source defaults to Chrome and supports Chrome, Brave, Chromium, Edge, Firefox, Opera, and Vivaldi.
+- Automatic retry without cookies when browser cookie extraction fails, so downloads still complete unauthenticated instead of erroring.
+- Pure `cookieFallback` helpers (`stripCookieArgs`, `isBrowserCookieError`) with tests.
+
+### Changed
+- The "Log in" buttons now open the provider page in your default system browser instead of an embedded window.
+- `extractTitle` sanitizes the browser source and only requests cookies when browser cookies are enabled.
+
+### Fixed
+- YouTube "Sign in to confirm you're not a bot" failures by passing the browser's cookies to yt-dlp.
+- Removed the previous Electron-session cookie temp-file mechanism and the unused `app:get-cookies-file` IPC handler.
+
 ## [2.0.6] - 2026-08-03
 
 ### Fixed

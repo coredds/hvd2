@@ -14,8 +14,23 @@ video and audio content. Built with Electron and React.
 - Embed subtitles and thumbnails
 - Multi-language support (English, German, Spanish, Italian, Japanese, Portuguese)
 - Light, dark, and auto (system) theme
-- Built-in browser-based authentication
+- Browser-cookie authentication for sites that require sign-in
 - Auto-check and one-click download of required tools
+
+## Authentication
+
+Some sites (notably YouTube) require a signed-in session to download. HVD passes
+your browser's cookies to yt-dlp using `--cookies-from-browser`.
+
+1. Sign in to the site in the browser you want HVD to use.
+2. Open **Settings → Application Settings → Browser Cookies Configuration**,
+   enable browser cookies, and pick the browser (defaults to Chrome).
+3. Start the download.
+
+Cookies are read from the selected browser's profile. Some browsers and profiles
+(especially recent Chrome versions) lock or encrypt their cookie store. If the
+cookies cannot be read, HVD retries the download without authentication. Closing
+the browser before downloading often helps.
 
 ## Installation
 
@@ -32,6 +47,7 @@ npm install
 npm run dev        # Start in development mode
 npm run build      # Production build
 npm run test       # Run tests
+npm run lint       # Lint TypeScript sources
 ```
 
 ## Credits

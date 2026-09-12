@@ -47,7 +47,7 @@ npm run lint         # ESLint on .ts/.tsx
 - Use TypeScript strict mode.
 - Prefer explicit types; use `unknown` over `any` when possible.
 - Keep pure business logic (e.g., `CommandBuilder`, `DownloadParser`, `src/lib/buildDownloadOptions`) out of React components so it is unit-testable.
-- IPC handlers live in `electron/main.ts`;_renderer side uses `window.electronAPI`.
+- IPC handlers live in `electron/main.ts`; the renderer side uses `window.electronAPI`.
 - Empty `catch` blocks should include a comment explaining why the error is safe to ignore.
 - Shared preference defaults live in `src/types.ts` (`DEFAULT_PREFERENCES`).
 
@@ -62,3 +62,4 @@ npm run lint         # ESLint on .ts/.tsx
 - Do not edit `electron/preload.js` directly; it is built from `electron/preload.ts`.
 - Renderer components register IPC listeners via `api.downloads.on*` and must clean them up with the matching `off*` methods.
 - Dependency binary URLs point to upstream `latest` releases; do not add checksum verification unless explicitly requested.
+- Browser-cookie auth flows from the `browser.cookies.enabled` / `browser.cookies.source` prefs through `buildDownloadOptionsForItem` to `CommandBuilder`, which emits `--cookies-from-browser`. Sources are sanitized by `normalizeBrowserSource` (`electron/services/CommandBuilder.ts`), and `YtDlpService` retries without cookies when extraction fails.
