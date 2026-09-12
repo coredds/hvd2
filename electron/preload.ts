@@ -64,7 +64,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLocale: () => ipcRenderer.invoke('app:get-locale'),
     openPath: (path: string) => ipcRenderer.invoke('app:open-path', path),
     restart: () => ipcRenderer.invoke('app:restart'),
-    loginUrl: (url: string, title?: string) => ipcRenderer.invoke('app:login-url', url, title),
     openProvider: (url: string, source: string) => ipcRenderer.invoke('app:open-provider', url, source),
     getVersion: () => ipcRenderer.invoke('app:get-version'),
   },

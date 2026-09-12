@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { resolveAndApplyLanguage } from '../../i18n'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -29,6 +29,12 @@ export default function SettingsTab() {
 
   const [downloading, setDownloading] = useState<DependencyType | null>(null)
   const [setupExpanded, setSetupExpanded] = useState(false)
+  const [cookieTest, setCookieTest] = useState<{ running: boolean; ok?: boolean; detail?: string }>({ running: false })
+  const [appVersion, setAppVersion] = useState('')
+
+  useEffect(() => {
+    window.electronAPI.app.getVersion().then(setAppVersion).catch(() => {})
+  }, [])
 
   const downloadDep = async (dep: DependencyType) => {
     setDownloading(dep)
@@ -191,6 +197,18 @@ export default function SettingsTab() {
     color: 'var(--text-primary)',
   }
 
+  const runCookieTest = async () => {
+    const source = prefs['browser.cookies.source'] || 'chrome'
+    setCookieTest({ running: true })
+    try {
+      const result = await window.electronAPI.auth.testCookies(source)
+      setCookieTest({ running: false, ok: result.ok, detail: result.detail })
+      appendLog(result.ok ? t('settings.browser.cookies.test.ok') : t('settings.browser.cookies.test.fail').replace('{0}', result.detail || ''))
+    } catch (err: any) {
+      setCookieTest({ running: false, ok: false, detail: err?.message || String(err) })
+    }
+  }
+
   return (
     <div>
       {/* Dependencies */}
@@ -291,6 +309,21 @@ export default function SettingsTab() {
                 <option value="vivaldi">Vivaldi</option>
               </select>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="btn-default"
+                style={{ ...btnStyle, fontSize: 11 }}
+                disabled={cookieTest.running || !prefs['browser.cookies.enabled']}
+                onClick={runCookieTest}
+              >
+                {cookieTest.running ? t('settings.browser.cookies.test.running') : t('settings.browser.cookies.test')}
+              </button>
+              {!cookieTest.running && cookieTest.ok !== undefined && (
+                <span style={{ fontSize: 12, color: cookieTest.ok ? '#4CAF50' : '#F44336' }}>
+                  {cookieTest.ok ? t('settings.browser.cookies.test.ok') : t('settings.browser.cookies.test.fail').replace('{0}', cookieTest.detail || '')}
+                </span>
+              )}
+            </div>
             <div className="form-help">{t('settings.browser.cookies.note')}</div>
           </div>
         </div>
@@ -303,12 +336,12 @@ export default function SettingsTab() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
-              await window.electronAPI.app.loginUrl('https://www.youtube.com', t('general.login.title'))
+              window.electronAPI.app.openProvider('https://www.youtube.com', prefs['browser.cookies.source'])
             }}>
               {t('settings.auth.login.youtube')}
             </button>
             <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
-              await window.electronAPI.app.loginUrl('https://vimeo.com/log_in', t('general.login.title'))
+              window.electronAPI.app.openProvider('https://vimeo.com/log_in', prefs['browser.cookies.source'])
             }}>
               {t('settings.auth.login.vimeo')}
             </button>
@@ -330,6 +363,11 @@ export default function SettingsTab() {
             <div>{t('settings.setup.step4')}</div>
           </div>
         )}
+      </div>
+
+      {/* About */}
+      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-dim)', marginTop: 8 }}>
+        {t('settings.about.version').replace('{0}', appVersion)}
       </div>
     </div>
   )

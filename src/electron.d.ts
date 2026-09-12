@@ -46,7 +46,6 @@ export interface ElectronAPI {
     getLocale: () => Promise<string>
     openPath: (path: string) => Promise<void>
     restart: () => Promise<void>
-    loginUrl: (url: string, title?: string) => Promise<boolean>
     openProvider: (url: string, source: string) => Promise<boolean>
     getVersion: () => Promise<string>
   }

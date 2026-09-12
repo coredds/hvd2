@@ -219,13 +219,6 @@ ipcMain.handle('auth:test-cookies', async (_event, source: string) => {
   return ytDlp.testBrowserCookies(source)
 })
 
-// ─── IPC: YouTube Authentication ─────────────────────────────────
-
-ipcMain.handle('app:login-url', async (_event, url: string, _title?: string) => {
-  await shell.openExternal(url)
-  return true
-})
-
 // ─── Shutdown ────────────────────────────────────────────────────
 
 function shutdown() {
