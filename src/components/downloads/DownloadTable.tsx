@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import type { DownloadItem } from '../../types'
 import ProgressCell from './ProgressCell'
+import ErrorCell from './ErrorCell'
 
 interface Props {
   items: DownloadItem[]
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
+  onRetry: (item: DownloadItem) => void
+  onSignIn: (item: DownloadItem) => void
 }
 
 const thStyle: React.CSSProperties = {
@@ -23,7 +26,7 @@ const tdStyle: React.CSSProperties = {
   borderBottom: '1px solid var(--border-table-row)',
 }
 
-export default function DownloadTable({ items, selectedIds, onToggleSelect }: Props) {
+export default function DownloadTable({ items, selectedIds, onToggleSelect, onRetry, onSignIn }: Props) {
   const { t } = useTranslation()
 
   if (items.length === 0) {
@@ -69,7 +72,7 @@ export default function DownloadTable({ items, selectedIds, onToggleSelect }: Pr
             <th style={thStyle}>{t('table.url')}</th>
             <th style={thStyle}>{t('table.title')}</th>
             <th style={thStyle}>{t('table.format')}</th>
-            <th style={{ ...thStyle, width: 100 }}>{t('table.status')}</th>
+            <th style={{ ...thStyle, width: 230 }}>{t('table.status')}</th>
             <th style={{ ...thStyle, minWidth: 140 }}>{t('table.progress')}</th>
           </tr>
         </thead>
@@ -97,9 +100,7 @@ export default function DownloadTable({ items, selectedIds, onToggleSelect }: Pr
               <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{item.format}</td>
               <td style={tdStyle}>
                 {item.status === 'ERROR' ? (
-                  <span style={{ color: '#F44336', fontWeight: 500, fontSize: 12 }} title={item.errorMessage}>
-                    {item.errorMessage || t(`status.${item.status.toLowerCase()}`)}
-                  </span>
+                  <ErrorCell item={item} onRetry={onRetry} onSignIn={onSignIn} />
                 ) : (
                   <span style={statusStyle(item.status)}>
                     {t(`status.${item.status.toLowerCase()}`)}

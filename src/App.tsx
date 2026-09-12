@@ -182,6 +182,7 @@ export default function App() {
             <DownloadsTab
               setStatusMessage={setStatusMessage}
               setStatusSpinner={setStatusSpinner}
+              onOpenSettings={() => setActiveTab(1)}
             />
           )}
           {activeTab === 1 && <SettingsTab />}

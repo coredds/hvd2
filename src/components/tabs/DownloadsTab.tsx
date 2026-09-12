@@ -5,14 +5,18 @@ import VideoOptions from '../downloads/VideoOptions'
 import AudioOptions from '../downloads/AudioOptions'
 import DownloadTable from '../downloads/DownloadTable'
 import QueueControls from '../downloads/QueueControls'
+import AuthBanner from '../downloads/AuthBanner'
 import { useDownloadStore } from '../../stores/downloadStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useLogStore } from '../../stores/logStore'
 import { buildDownloadOptionsForItem } from '../../lib/buildDownloadOptions'
+import { getAuthProvider, getLoginUrl } from '../../lib/authProviders'
+import type { DownloadErrorKind, DownloadItem } from '../../types'
 
 interface Props {
   setStatusMessage: (key: string) => void
   setStatusSpinner: (show: boolean) => void
+  onOpenSettings: () => void
 }
 
 function isPlaylistUrl(url: string): boolean {
@@ -21,7 +25,7 @@ function isPlaylistUrl(url: string): boolean {
     /youtu\.be\/.*\?.*list=/.test(url)
 }
 
-export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Props) {
+export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpenSettings }: Props) {
   const { t } = useTranslation()
   const items = useDownloadStore((s) => s.items)
   const addUrls = useDownloadStore((s) => s.addUrls)
@@ -30,6 +34,8 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
   const updateStatus = useDownloadStore((s) => s.updateStatus)
   const setTitle = useDownloadStore((s) => s.setTitle)
   const setError = useDownloadStore((s) => s.setError)
+  const retryItemAction = useDownloadStore((s) => s.retryItem)
+  const retryFailedAction = useDownloadStore((s) => s.retryFailed)
   const appendLog = useLogStore((s) => s.appendLog)
 
   const prefs = useSettingsStore((s) => s.prefs)
@@ -42,6 +48,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
   )
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [optionsExpanded, setOptionsExpanded] = useState(true)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   const [videoQuality, setVideoQuality] = useState(prefs['video.quality'])
   const [videoFormat, setVideoFormat] = useState(prefs['video.format'])
@@ -119,20 +126,12 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       setTimeout(() => setStatusMessage('status.ready'), 3000)
     }
 
-    const onError = (_event: unknown, { id, message }: { id: string; message: string }) => {
+    const onError = (_event: unknown, { id, message, kind, cookiesFailed }: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => {
       updateStatus(id, 'ERROR')
-      setError(id, message, 'unknown', false)
+      setError(id, message, kind, cookiesFailed)
       setStatusMessage('status.error')
       setStatusSpinner(false)
       appendLog(t('downloads.error.log').replace('{0}', message))
-
-      // If auth error, log a tip
-      if (/logged.in|cookies|403|Forbidden|authentication/i.test(message)) {
-        const item = useDownloadStore.getState().items.find(i => i.id === id)
-        if (item) {
-          appendLog(t('downloads.error.auth.tip'))
-        }
-      }
     }
 
     const onPaused = (_event: unknown, { id }: { id: string }) => {
@@ -186,7 +185,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       processed++
 
       const existing = items.find((i) => i.url === url)
-      if (existing) {
+      if (existing && existing.status !== 'ERROR') {
         if (existing.status === 'COMPLETED') {
           appendLog(t('log.url.skipped.completed').replace('{0}', url))
         } else {
@@ -249,6 +248,46 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
     setUrlText('')
   }
 
+  const startItems = async (targets: DownloadItem[]) => {
+    if (targets.length === 0) return
+
+    if (ytDlpStatus === 'not-found') {
+      await window.electronAPI.dialog.showAlert({
+        title: t('alert.error'),
+        message: t('status.ytdlp.not.found') + '\n\n' + t('settings.setup.step1'),
+      })
+      return
+    }
+
+    const optionParams = buildCurrentOptionsParams()
+    const hasThumbnail = targets.some((item) => buildDownloadOptionsForItem(item, optionParams).embedThumbnail)
+    if (hasThumbnail) {
+      const ffmpegOk = await window.electronAPI.deps.checkFFmpeg()
+      if (!ffmpegOk) {
+        const result = await window.electronAPI.dialog.showAlert({
+          title: t('alert.ffmpeg.missing.title'),
+          message: t('alert.ffmpeg.missing.content'),
+          type: 'warning',
+          buttons: [t('alert.continue'), t('alert.playlist.cancel')],
+        })
+        if (result !== 0) return
+      }
+    }
+
+    for (const item of targets) {
+      updateStatus(item.id, 'DOWNLOADING')
+      const options = buildDownloadOptionsForItem(item, optionParams)
+      window.electronAPI.downloads.start(item, options)
+    }
+
+    const completedOrActive = items.filter((i) => i.status === 'COMPLETED' || i.status === 'DOWNLOADING').length - targets.length
+    if (completedOrActive > 0) {
+      appendLog(t('log.downloads.started').replace('{0}', String(targets.length)).replace('{1}', t('log.downloads.started.suffix').replace('{0}', String(completedOrActive))))
+    } else {
+      appendLog(t('log.downloads.started').replace('{0}', String(targets.length)).replace('{1}', ''))
+    }
+  }
+
   const startAll = async () => {
     const queued = items.filter((i) => i.status === 'QUEUED')
     if (queued.length === 0) {
@@ -263,45 +302,26 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       }
       return
     }
+    await startItems(queued)
+  }
 
-    // Check yt-dlp is available (only block if confirmed missing)
-    if (ytDlpStatus === 'not-found') {
-      await window.electronAPI.dialog.showAlert({
-        title: t('alert.error'),
-        message: t('status.ytdlp.not.found') + '\n\n' + t('settings.setup.step1'),
-      })
-      return
-    }
+  const retryItem = (item: DownloadItem) => {
+    retryItemAction(item.id)
+    const refreshed = useDownloadStore.getState().items.find((i) => i.id === item.id)
+    if (refreshed) startItems([refreshed])
+  }
 
-    const optionParams = buildCurrentOptionsParams()
-    const hasThumbnail = queued.some((item) => buildDownloadOptionsForItem(item, optionParams).embedThumbnail)
-    if (hasThumbnail) {
-      const ffmpegOk = await window.electronAPI.deps.checkFFmpeg()
-      if (!ffmpegOk) {
-        const result = await window.electronAPI.dialog.showAlert({
-          title: t('alert.ffmpeg.missing.title'),
-          message: t('alert.ffmpeg.missing.content'),
-          type: 'warning',
-          buttons: [t('alert.continue'), t('alert.playlist.cancel')],
-        })
-        if (result !== 0) return
-      }
-    }
+  const retryFailed = () => {
+    const ids = useDownloadStore.getState().items.filter((i) => i.status === 'ERROR').map((i) => i.id)
+    retryFailedAction()
+    const targets = useDownloadStore.getState().items.filter((i) => ids.includes(i.id))
+    startItems(targets)
+  }
 
-    let queuedCount = 0
-
-    for (const item of queued) {
-      updateStatus(item.id, 'DOWNLOADING')
-      const options = buildDownloadOptionsForItem(item, optionParams)
-      window.electronAPI.downloads.start(item, options)
-      queuedCount++
-    }
-
-    const completedOrActive = items.filter((i) => i.status === 'COMPLETED' || i.status === 'DOWNLOADING').length - queuedCount
-    if (completedOrActive > 0) {
-      appendLog(t('log.downloads.started').replace('{0}', String(queuedCount)).replace('{1}', t('log.downloads.started.suffix').replace('{0}', String(completedOrActive))))
-    } else {
-      appendLog(t('log.downloads.started').replace('{0}', String(queuedCount)).replace('{1}', ''))
+  const signIn = (item: DownloadItem) => {
+    const provider = getAuthProvider(item.url)
+    if (provider) {
+      window.electronAPI.app.openProvider(getLoginUrl(provider), prefs['browser.cookies.source'])
     }
   }
 
@@ -333,6 +353,13 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       return next
     })
   }
+
+  const authErrorItems = items.filter((i) => i.status === 'ERROR' && (i.errorKind === 'auth' || i.cookiesFailed))
+  const showAuthBanner = authErrorItems.length > 0 && !bannerDismissed
+
+  useEffect(() => {
+    setBannerDismissed(false)
+  }, [authErrorItems.length])
 
   return (
     <div>
@@ -406,14 +433,24 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
       {/* Queue section */}
       <div style={{ marginTop: 20 }}>
         <div className="section-title">{t('downloads.queue.label')}</div>
+        {showAuthBanner && (
+          <AuthBanner
+            items={authErrorItems}
+            source={prefs['browser.cookies.source']}
+            onOpenSettings={onOpenSettings}
+            onDismiss={() => setBannerDismissed(true)}
+          />
+        )}
         <QueueControls
           onStartAll={startAll}
           onPauseAll={pauseAll}
           onRemoveSelected={removeSelected}
+          onRetryFailed={retryFailed}
           hasDownloads={items.length > 0}
+          hasErrors={items.some((i) => i.status === 'ERROR')}
         />
         <div style={{ marginTop: 8 }}>
-          <DownloadTable items={items} selectedIds={selectedIds} onToggleSelect={toggleSelect} />
+          <DownloadTable items={items} selectedIds={selectedIds} onToggleSelect={toggleSelect} onRetry={retryItem} onSignIn={signIn} />
         </div>
       </div>
     </div>

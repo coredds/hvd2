@@ -4,10 +4,12 @@ interface Props {
   onStartAll: () => void
   onPauseAll: () => void
   onRemoveSelected: () => void
+  onRetryFailed: () => void
   hasDownloads: boolean
+  hasErrors: boolean
 }
 
-export default function QueueControls({ onStartAll, onPauseAll, onRemoveSelected, hasDownloads }: Props) {
+export default function QueueControls({ onStartAll, onPauseAll, onRemoveSelected, onRetryFailed, hasDownloads, hasErrors }: Props) {
   const { t } = useTranslation()
 
   return (
@@ -17,6 +19,9 @@ export default function QueueControls({ onStartAll, onPauseAll, onRemoveSelected
       </button>
       <button className="btn-warning" onClick={onPauseAll} disabled={!hasDownloads}>
         {t('downloads.pause.all')}
+      </button>
+      <button className="btn-primary" onClick={onRetryFailed} disabled={!hasErrors}>
+        {t('downloads.retry.failed')}
       </button>
       <button className="btn-danger" onClick={onRemoveSelected} disabled={!hasDownloads}>
         {t('downloads.remove.selected')}
