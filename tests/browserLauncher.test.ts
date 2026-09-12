@@ -30,4 +30,15 @@ describe('resolveBrowserExecutable', () => {
   it('returns null for an unknown source', () => {
     expect(resolveBrowserExecutable('netscape', 'win32', () => true, env)).toBeNull()
   })
+
+  it('resolves chrome on macOS', () => {
+    const target = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    expect(resolveBrowserExecutable('chrome', 'darwin', (p) => p === target, {})).toBe(target)
+  })
+
+  it('prefers Program Files chrome over LOCALAPPDATA', () => {
+    const pf = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    const local = 'C:\\Users\\me\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
+    expect(resolveBrowserExecutable('chrome', 'win32', (p) => p === pf || p === local, env)).toBe(pf)
+  })
 })

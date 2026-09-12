@@ -29,4 +29,7 @@ describe('getErrorPresentation', () => {
     expect(getErrorPresentation('auth', false, 'https://example.com/x').showSignIn).toBe(false)
     expect(getErrorPresentation('network', false, yt).showSignIn).toBe(false)
   })
+  it('shows sign-in for vimeo', () => {
+    expect(getErrorPresentation('auth', false, 'https://vimeo.com/76979871').showSignIn).toBe(true)
+  })
 })

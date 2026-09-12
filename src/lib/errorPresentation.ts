@@ -1,11 +1,9 @@
 import type { DownloadErrorKind } from '../types'
 import { getAuthProvider } from './authProviders'
-import type { AuthProvider } from './authProviders'
 
 export interface ErrorPresentation {
   messageKey: string
   showSignIn: boolean
-  provider: AuthProvider | null
 }
 
 const MESSAGE_KEYS: Record<DownloadErrorKind, string> = {
@@ -25,5 +23,5 @@ export function getErrorPresentation(
 ): ErrorPresentation {
   const provider = getAuthProvider(url)
   const messageKey = kind === 'auth' && cookiesFailed ? 'downloads.error.auth.cookies' : MESSAGE_KEYS[kind]
-  return { messageKey, showSignIn: kind === 'auth' && provider !== null, provider }
+  return { messageKey, showSignIn: kind === 'auth' && provider !== null }
 }

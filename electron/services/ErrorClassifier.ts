@@ -1,6 +1,6 @@
 import type { DownloadErrorKind } from '../../src/types'
 
-const COOKIE_RE = /cookies database|failed to extract cookies|failed to decrypt.*cookies|unable to decrypt.*cookies|dpapi/i
+const COOKIE_RE = /cookies? database|failed to extract cookies|could not (?:copy|read|find) .*cookies?|(?:failed|unable) to decrypt.*cookies?|decrypt.*cookies?|dpapi/i
 const AUTH_RE = /sign in to confirm|not a bot|login required|log in|members-only|age.?restricted|private video|confirm your age|http error 403|403 forbidden/i
 const FFMPEG_RE = /ffmpeg|postprocessing|post-processor/i
 const UNAVAILABLE_RE = /video unavailable|has been removed|no longer available|not available in your country|geo.?restricted|uploader has not made|deleted/i

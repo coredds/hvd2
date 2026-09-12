@@ -280,7 +280,8 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
       window.electronAPI.downloads.start(item, options)
     }
 
-    const completedOrActive = items.filter((i) => i.status === 'COMPLETED' || i.status === 'DOWNLOADING').length - targets.length
+    const targetIds = new Set(targets.map((t) => t.id))
+    const completedOrActive = items.filter((i) => !targetIds.has(i.id) && (i.status === 'COMPLETED' || i.status === 'DOWNLOADING')).length
     if (completedOrActive > 0) {
       appendLog(t('log.downloads.started').replace('{0}', String(targets.length)).replace('{1}', t('log.downloads.started.suffix').replace('{0}', String(completedOrActive))))
     } else {

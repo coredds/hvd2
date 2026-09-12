@@ -6,6 +6,14 @@ describe('classifyDownloadError', () => {
     expect(classifyDownloadError('ERROR: could not find chrome cookies database in "C:\\Users"')).toBe('cookies')
   })
 
+  it('detects cookie database copy failures', () => {
+    expect(classifyDownloadError('ERROR: Could not copy Chrome cookie database to a temporary location')).toBe('cookies')
+  })
+
+  it('detects cookie decryption failures', () => {
+    expect(classifyDownloadError('ERROR: Could not decrypt cookies')).toBe('cookies')
+  })
+
   it('detects sign-in / bot-check errors without misclassifying the advice text', () => {
     const msg = "ERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies for the authentication."
     expect(classifyDownloadError(msg)).toBe('auth')

@@ -203,7 +203,7 @@ ipcMain.handle('app:open-provider', async (_event, url: string, source: string) 
     try {
       const child = spawn(exe, [url], { detached: true, stdio: 'ignore' })
       child.on('error', () => {
-        void shell.openExternal(url)
+        shell.openExternal(url).catch(() => {})
       })
       child.unref()
       return true
@@ -211,7 +211,7 @@ ipcMain.handle('app:open-provider', async (_event, url: string, source: string) 
       // Fall back to the system browser if the selected executable cannot launch
     }
   }
-  await shell.openExternal(url)
+  await shell.openExternal(url).catch(() => {})
   return true
 })
 

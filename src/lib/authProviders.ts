@@ -29,5 +29,5 @@ const BROWSER_LABELS: Record<string, string> = {
 }
 
 export function getBrowserLabel(source: string): string {
-  return BROWSER_LABELS[source] || 'Chrome'
+  return Object.prototype.hasOwnProperty.call(BROWSER_LABELS, source) ? BROWSER_LABELS[source] : 'Chrome'
 }

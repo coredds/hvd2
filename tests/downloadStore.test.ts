@@ -48,16 +48,22 @@ describe('downloadStore', () => {
     expect(item.cookiesFailed).toBe(false)
   })
 
-  it('retries all failed items', () => {
+  it('retries all failed items without touching others', () => {
     reset()
     useDownloadStore.getState().addUrls([
       { url: 'https://example.com/f1', noPlaylist: false, format: 'video', audioOnly: false },
       { url: 'https://example.com/f2', noPlaylist: false, format: 'video', audioOnly: false },
+      { url: 'https://example.com/ok', noPlaylist: false, format: 'video', audioOnly: false },
     ])
-    const ids = useDownloadStore.getState().items.map((i) => i.id)
-    ids.forEach((id) => useDownloadStore.getState().updateStatus(id, 'ERROR'))
+    const items = useDownloadStore.getState().items
+    useDownloadStore.getState().updateStatus(items[0].id, 'ERROR')
+    useDownloadStore.getState().updateStatus(items[1].id, 'ERROR')
+    useDownloadStore.getState().updateStatus(items[2].id, 'COMPLETED')
     useDownloadStore.getState().retryFailed()
-    expect(useDownloadStore.getState().items.every((i) => i.status === 'QUEUED')).toBe(true)
+    const after = useDownloadStore.getState().items
+    expect(after[0].status).toBe('QUEUED')
+    expect(after[1].status).toBe('QUEUED')
+    expect(after[2].status).toBe('COMPLETED')
   })
 
   it('replaces an errored item when the same url is re-added', () => {

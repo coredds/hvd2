@@ -204,8 +204,10 @@ export default function SettingsTab() {
       const result = await window.electronAPI.auth.testCookies(source)
       setCookieTest({ running: false, ok: result.ok, detail: result.detail })
       appendLog(result.ok ? t('settings.browser.cookies.test.ok') : t('settings.browser.cookies.test.fail').replace('{0}', result.detail || ''))
-    } catch (err: any) {
-      setCookieTest({ running: false, ok: false, detail: err?.message || String(err) })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      setCookieTest({ running: false, ok: false, detail })
+      appendLog(t('settings.browser.cookies.test.fail').replace('{0}', detail))
     }
   }
 
@@ -335,12 +337,12 @@ export default function SettingsTab() {
             {t('settings.auth.description')}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
+            <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => {
               window.electronAPI.app.openProvider('https://www.youtube.com', prefs['browser.cookies.source'])
             }}>
               {t('settings.auth.login.youtube')}
             </button>
-            <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={async () => {
+            <button className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => {
               window.electronAPI.app.openProvider('https://vimeo.com/log_in', prefs['browser.cookies.source'])
             }}>
               {t('settings.auth.login.vimeo')}
@@ -365,7 +367,6 @@ export default function SettingsTab() {
         )}
       </div>
 
-      {/* About */}
       <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-dim)', marginTop: 8 }}>
         {t('settings.about.version').replace('{0}', appVersion)}
       </div>

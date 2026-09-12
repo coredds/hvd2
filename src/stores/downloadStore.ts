@@ -93,7 +93,7 @@ export const useDownloadStore = create<DownloadStore>((set) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.id === id
-          ? { ...item, status: 'QUEUED', progress: 0, errorMessage: '', errorKind: 'unknown', cookiesFailed: false }
+          ? { ...item, status: 'QUEUED', progress: 0, filePath: '', errorMessage: '', errorKind: 'unknown', cookiesFailed: false }
           : item
       ),
     })),
@@ -102,7 +102,7 @@ export const useDownloadStore = create<DownloadStore>((set) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.status === 'ERROR'
-          ? { ...item, status: 'QUEUED', progress: 0, errorMessage: '', errorKind: 'unknown', cookiesFailed: false }
+          ? { ...item, status: 'QUEUED', progress: 0, filePath: '', errorMessage: '', errorKind: 'unknown', cookiesFailed: false }
           : item
       ),
     })),
