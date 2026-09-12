@@ -16,7 +16,16 @@ export interface DownloadOptions {
   embedSubtitles: boolean
   embedThumbnail: boolean
   addMetadata: boolean
-  cookiesFile?: string | null
+  useBrowserCookies?: boolean
+  browserSource?: string
+}
+
+export const SUPPORTED_BROWSERS = [
+  'chrome', 'brave', 'chromium', 'edge', 'firefox', 'opera', 'vivaldi',
+] as const
+
+export function normalizeBrowserSource(source?: string): string {
+  return source && (SUPPORTED_BROWSERS as readonly string[]).includes(source) ? source : 'chrome'
 }
 
 export function buildCommand(
@@ -79,8 +88,8 @@ if (options.embedThumbnail) {
     args.push('--no-playlist')
   }
 
-  if (options.cookiesFile) {
-    args.push('--cookies', options.cookiesFile)
+  if (options.useBrowserCookies) {
+    args.push('--cookies-from-browser', normalizeBrowserSource(options.browserSource))
   }
 
   args.push(item.url)

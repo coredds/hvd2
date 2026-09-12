@@ -130,9 +130,24 @@ describe('CommandBuilder', () => {
       expect(hasFlag(args, '--add-metadata')).toBe(true)
     })
 
-    it('passes --cookies when cookiesFile is set', () => {
-      const args = build(baseItem, { cookiesFile: 'C:\\tmp\\cookies.txt' })
-      expect(findFlag(args, '--cookies')).toBe('C:\\tmp\\cookies.txt')
+    it('passes --cookies-from-browser when browser cookies are enabled', () => {
+      const args = build(baseItem, { useBrowserCookies: true, browserSource: 'chrome' })
+      expect(findFlag(args, '--cookies-from-browser')).toBe('chrome')
+    })
+
+    it('omits --cookies-from-browser when disabled', () => {
+      const args = build(baseItem, { useBrowserCookies: false, browserSource: 'chrome' })
+      expect(hasFlag(args, '--cookies-from-browser')).toBe(false)
+    })
+
+    it('sanitizes unknown browser sources to chrome', () => {
+      const args = build(baseItem, { useBrowserCookies: true, browserSource: '--evil' })
+      expect(findFlag(args, '--cookies-from-browser')).toBe('chrome')
+    })
+
+    it('places --cookies-from-browser before the url', () => {
+      const args = build(baseItem, { useBrowserCookies: true, browserSource: 'firefox' })
+      expect(args.indexOf('--cookies-from-browser')).toBeLessThan(args.indexOf(ytUrl))
     })
 
     it('audio-only YouTube adds bestaudio format', () => {
