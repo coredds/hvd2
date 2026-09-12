@@ -1,4 +1,4 @@
-const BROWSER_COOKIE_ERROR_RE = /cookies database|cookies-from-browser|failed to extract cookies|failed to decrypt.*cookies|decrypt.*cookies|dpapi/i
+import { classifyDownloadError } from './ErrorClassifier'
 
 export function stripCookieArgs(args: string[]): string[] {
   const result: string[] = []
@@ -13,5 +13,5 @@ export function stripCookieArgs(args: string[]): string[] {
 }
 
 export function isBrowserCookieError(stderr: string): boolean {
-  return BROWSER_COOKIE_ERROR_RE.test(stderr)
+  return classifyDownloadError(stderr) === 'cookies'
 }

@@ -1,5 +1,14 @@
 export type DownloadStatus = 'QUEUED' | 'DOWNLOADING' | 'PAUSED' | 'COMPLETED' | 'ERROR'
 
+export type DownloadErrorKind =
+  | 'auth'
+  | 'cookies'
+  | 'ffmpeg'
+  | 'unavailable'
+  | 'network'
+  | 'unsupported'
+  | 'unknown'
+
 export interface DownloadItem {
   id: string
   url: string
