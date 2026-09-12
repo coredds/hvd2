@@ -29,7 +29,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
   const updateProgress = useDownloadStore((s) => s.updateProgress)
   const updateStatus = useDownloadStore((s) => s.updateStatus)
   const setTitle = useDownloadStore((s) => s.setTitle)
-  const setErrorMessage = useDownloadStore((s) => s.setErrorMessage)
+  const setError = useDownloadStore((s) => s.setError)
   const appendLog = useLogStore((s) => s.appendLog)
 
   const prefs = useSettingsStore((s) => s.prefs)
@@ -121,7 +121,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner }: Pro
 
     const onError = (_event: unknown, { id, message }: { id: string; message: string }) => {
       updateStatus(id, 'ERROR')
-      setErrorMessage(id, message)
+      setError(id, message, 'unknown', false)
       setStatusMessage('status.error')
       setStatusSpinner(false)
       appendLog(t('downloads.error.log').replace('{0}', message))

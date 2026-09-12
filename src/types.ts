@@ -18,6 +18,8 @@ export interface DownloadItem {
   status: DownloadStatus
   progress: number
   errorMessage: string
+  errorKind: DownloadErrorKind
+  cookiesFailed: boolean
   filePath: string
   noPlaylist: boolean
 }
