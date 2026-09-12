@@ -37,3 +37,4 @@ package-lock.json.bak
 
 # Superpowers workflow docs
 docs/superpowers/
+.superpowers/
