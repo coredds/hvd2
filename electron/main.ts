@@ -201,7 +201,11 @@ ipcMain.handle('app:open-provider', async (_event, url: string, source: string) 
   const exe = resolveBrowserExecutable(source, process.platform, fs.existsSync, process.env)
   if (exe) {
     try {
-      spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref()
+      const child = spawn(exe, [url], { detached: true, stdio: 'ignore' })
+      child.on('error', () => {
+        void shell.openExternal(url)
+      })
+      child.unref()
       return true
     } catch {
       // Fall back to the system browser if the selected executable cannot launch
