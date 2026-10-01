@@ -1,7 +1,6 @@
 import { useState, useEffect, Component } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from './i18n'
-import { resolveAndApplyLanguage } from './i18n'
 import DownloadsTab from './components/tabs/DownloadsTab'
 import SettingsTab from './components/tabs/SettingsTab'
 import LogsTab from './components/tabs/LogsTab'
@@ -9,6 +8,7 @@ import StatusBar from './components/StatusBar'
 import { useLogStore } from './stores/logStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { subscribeDownloadEvents } from './lib/downloadEvents'
+import { startAppInitialization } from './lib/appInitialization'
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null }
@@ -41,6 +41,7 @@ export default function App() {
   const ytDlpStatus = useSettingsStore((s) => s.ytDlpStatus)
   const ffmpegStatus = useSettingsStore((s) => s.ffmpegStatus)
   const denoStatus = useSettingsStore((s) => s.denoStatus)
+  const appTheme = prefs['app.theme'] || 'auto'
 
   const [activeTab, setActiveTab] = useState(0)
   const [statusMessage, setStatusMessage] = useState('status.ready')
@@ -54,76 +55,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    appendLog(t('log.app.started'))
-    checkDepsOnStart()
-  }, [])
+    const api = window.electronAPI
+    if (!api) return
+    return startAppInitialization(api, {
+      appendLog, setPrefs, setYtDlpStatus, setFFmpegStatus, setDenoStatus,
+      onChecked: () => setDepsChecked(true),
+    })
+  }, [appendLog, setPrefs, setYtDlpStatus, setFFmpegStatus, setDenoStatus])
 
   // Apply theme to <html> element
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', prefs['app.theme'] || 'auto')
-  }, [prefs['app.theme']])
-
-  const checkDepsOnStart = async () => {
-    const api = window.electronAPI
-    if (!api) return
-
-    // Load saved preferences from disk
-    let saved: any = null
-    try {
-      saved = await api.prefs.getAll()
-      if (saved) setPrefs(saved)
-    } catch {
-      // Preferences may be unavailable during early startup
-    }
-
-    // Apply language from saved preference or auto-detect
-    try {
-      const langPref = saved?.['app.language'] || 'auto'
-      await resolveAndApplyLanguage(langPref)
-    } catch {
-      // Fall back to default language
-    }
-
-    const missing: string[] = []
-
-    try {
-      const yt = await api.deps.checkYtDlp()
-      if (yt.available) {
-        setYtDlpStatus(yt.isRecent ? 'available' : 'outdated', yt.version)
-        if (!yt.isRecent) missing.push('yt-dlp (outdated)')
-      } else {
-        setYtDlpStatus('not-found')
-        missing.push('yt-dlp')
-      }
-    } catch {
-      setYtDlpStatus('not-found')
-      missing.push('yt-dlp')
-    }
-
-    try {
-      const ff = await api.deps.checkFFmpeg()
-      setFFmpegStatus(ff ? 'available' : 'not-found')
-      if (!ff) missing.push('FFmpeg')
-    } catch {
-      setFFmpegStatus('not-found')
-      missing.push('FFmpeg')
-    }
-
-    try {
-      const dn = await api.deps.checkDeno()
-      setDenoStatus(dn ? 'available' : 'not-found')
-      if (!dn) missing.push('Deno')
-    } catch {
-      setDenoStatus('not-found')
-      missing.push('Deno')
-    }
-
-    setDepsChecked(true)
-
-    if (missing.length > 0) {
-      appendLog(t('app.deps.missing').replace('{0}', missing.join(', ')))
-    }
-  }
+    document.documentElement.setAttribute('data-theme', appTheme)
+  }, [appTheme])
 
   const hasDepsIssue = ytDlpStatus === 'not-found' || ytDlpStatus === 'outdated' ||
     ffmpegStatus === 'not-found' || denoStatus === 'not-found'

@@ -1,58 +1,10 @@
-import type { DownloadItem, DownloadOptions, DependencyType, DownloadErrorKind } from './types'
+import type { ElectronAPI, ElectronAPITransport } from './ipc'
 
-export interface ElectronAPI {
-  downloads: {
-    start: (item: DownloadItem, options: DownloadOptions) => Promise<void>
-    cancel: (id: string) => Promise<void>
-    extractTitle: (url: string, browser?: string) => Promise<string>
-    onProgress: (cb: (event: any, data: { id: string; progress: number }) => void) => void
-    offProgress: (cb: (event: any, data: { id: string; progress: number }) => void) => void
-    onLog: (cb: (event: any, data: { id: string; line: string }) => void) => void
-    offLog: (cb: (event: any, data: { id: string; line: string }) => void) => void
-    onStatus: (cb: (event: any, data: { id: string; key: string }) => void) => void
-    offStatus: (cb: (event: any, data: { id: string; key: string }) => void) => void
-    onComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
-    offComplete: (cb: (event: any, data: { id: string; filePath: string }) => void) => void
-    onError: (cb: (event: any, data: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => void) => void
-    offError: (cb: (event: any, data: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => void) => void
-    onPaused: (cb: (event: any, data: { id: string }) => void) => void
-    offPaused: (cb: (event: any, data: { id: string }) => void) => void
-  }
-  deps: {
-    checkYtDlp: () => Promise<{ available: boolean; version?: string; isRecent?: boolean }>
-    checkFFmpeg: () => Promise<boolean>
-    checkDeno: () => Promise<boolean>
-    downloadYtDlp: () => Promise<void>
-    downloadFFmpeg: () => Promise<void>
-    downloadDeno: () => Promise<void>
-    updateYtDlpSelf: () => Promise<{ success: boolean; message: string }>
-    openFolder: (type: DependencyType) => Promise<void>
-    getYtDlpVersion: () => Promise<string>
-    getYtDlpLatestVersion: () => Promise<string | null>
-  }
-  auth: {
-    testCookies: (source: string) => Promise<{ ok: boolean; detail: string }>
-  }
-  prefs: {
-    get: (key: string) => Promise<any>
-    set: (key: string, value: any) => Promise<void>
-    getAll: () => Promise<Record<string, any>>
-  }
-  dialog: {
-    openFolder: () => Promise<string | null>
-    showAlert: (opts: { title: string; message: string; type?: string; buttons?: string[] }) => Promise<number>
-  }
-  app: {
-    getLocale: () => Promise<string>
-    openPath: (path: string) => Promise<void>
-    restart: () => Promise<void>
-    openProvider: (url: string, source: string) => Promise<boolean>
-    getVersion: () => Promise<string>
-  }
-}
+export type { ElectronAPI } from './ipc'
 
 declare global {
   interface Window {
     electronAPI: ElectronAPI
+    readonly electronAPITransport?: ElectronAPITransport
   }
 }

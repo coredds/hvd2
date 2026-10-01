@@ -4,6 +4,7 @@ import { resolveAndApplyLanguage } from '../../i18n'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useLogStore } from '../../stores/logStore'
 import type { DependencyType } from '../../types'
+import { getErrorMessage } from '../../lib/errors'
 
 const btnStyle: React.CSSProperties = {
   padding: '5px 12px',
@@ -44,8 +45,8 @@ export default function SettingsTab() {
       if (dep === 'ytdlp') {
         try {
           await api.deps.downloadYtDlp()
-        } catch (directErr: any) {
-          appendLog(`Direct download failed: ${directErr?.message || directErr}`)
+        } catch (directErr) {
+          appendLog(`Direct download failed: ${getErrorMessage(directErr)}`)
           appendLog(t('log.deps.fallback').replace('{0}', 'yt-dlp -U'))
           const result = await api.deps.updateYtDlpSelf()
           if (!result.success) {
@@ -69,8 +70,8 @@ export default function SettingsTab() {
         setDenoStatus(ok ? 'available' : 'not-found')
       }
       return true
-    } catch (err: any) {
-      appendLog(`Failed: ${err?.message || err}`)
+    } catch (err) {
+      appendLog(`Failed: ${getErrorMessage(err)}`)
       return false
     } finally {
       setDownloading(null)

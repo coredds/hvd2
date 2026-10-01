@@ -7,6 +7,7 @@ import { DependencyManager } from './services/DependencyManager'
 import { PreferencesService } from './services/PreferencesService'
 import { resolveBrowserExecutable } from './services/BrowserLauncher'
 import type { DownloadItem, DownloadOptions } from '../src/types'
+import { normalizeWindowBounds } from '../src/lib/preferences'
 
 let win: BrowserWindow | null = null
 let ytDlp: YtDlpService
@@ -16,8 +17,8 @@ let prefs: PreferencesService
 const isDev = !app.isPackaged
 
 function createWindow() {
-  const savedBounds = prefs.get('window.bounds', null)
-  const wasMaximized = prefs.get('window.isMaximized', false)
+  const savedBounds = normalizeWindowBounds(prefs.get('window.bounds', null))
+  const wasMaximized = prefs.getBoolean('window.isMaximized', false)
 
   const windowOpts: Electron.BrowserWindowConstructorOptions = {
     width: savedBounds?.width ?? 1100,

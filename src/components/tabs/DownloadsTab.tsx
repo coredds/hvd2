@@ -38,6 +38,10 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
   const prefs = useSettingsStore((s) => s.prefs)
   const ytDlpStatus = useSettingsStore((s) => s.ytDlpStatus)
   const setYtDlpStatus = useSettingsStore((s) => s.setYtDlpStatus)
+  const savedVideoOutputDir = prefs['video.output.directory']
+  const savedAudioOutputDir = prefs['audio.output.directory']
+  const useBrowserCookies = prefs['browser.cookies.enabled']
+  const browserSource = prefs['browser.cookies.source']
 
   const [urlText, setUrlText] = useState('')
   const [activeSubtab, setActiveSubtab] = useState<'video' | 'audio'>(
@@ -63,9 +67,9 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
 
   // Sync local state when saved prefs are loaded on startup
   useEffect(() => {
-    if (prefs['video.output.directory']) setVideoOutputDir(prefs['video.output.directory'])
-    if (prefs['audio.output.directory']) setAudioOutputDir(prefs['audio.output.directory'])
-  }, [prefs['video.output.directory'], prefs['audio.output.directory']])
+    if (savedVideoOutputDir) setVideoOutputDir(savedVideoOutputDir)
+    if (savedAudioOutputDir) setAudioOutputDir(savedAudioOutputDir)
+  }, [savedVideoOutputDir, savedAudioOutputDir])
 
   const buildCurrentOptionsParams = useCallback(() => ({
     audioFormat,
@@ -80,12 +84,12 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
     embedThumbnailA,
     addMetadataV,
     addMetadataA,
-    useBrowserCookies: prefs['browser.cookies.enabled'],
-    browserSource: prefs['browser.cookies.source'],
+    useBrowserCookies,
+    browserSource,
   }), [
     audioFormat, audioQuality, videoQuality, videoFormat, videoAudioFormat,
     audioOutputDir, videoOutputDir, embedSubtitles, embedThumbnailV, embedThumbnailA,
-    addMetadataV, addMetadataA, prefs['browser.cookies.enabled'], prefs['browser.cookies.source'],
+    addMetadataV, addMetadataA, useBrowserCookies, browserSource,
   ])
 
   useEffect(() => {

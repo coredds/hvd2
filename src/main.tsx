@@ -3,6 +3,15 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './i18n'
 import './styles/index.css'
+import { createDownloadEventAdapter } from './lib/downloadEventAdapter'
+
+const transport = window.electronAPITransport
+if (transport) {
+  window.electronAPI = {
+    ...transport,
+    downloads: { ...transport.downloads, ...createDownloadEventAdapter(transport.downloads) },
+  }
+}
 
 console.log('[main] Starting renderer...')
 console.log('[main] electronAPI exists:', typeof window.electronAPI !== 'undefined')

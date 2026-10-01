@@ -1,39 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { ElectronAPITransport } from '../src/ipc'
+import { createDownloadEventSubscriptions } from './services/DownloadEventBridge'
 
-console.log('[preload] executing, exposing electronAPI...')
+console.log('[preload] executing, exposing electronAPITransport...')
 
-contextBridge.exposeInMainWorld('electronAPI', {
+const api: ElectronAPITransport = {
   downloads: {
-    start: (item: any, options: any) =>
+    start: (item, options) =>
       ipcRenderer.invoke('download:start', item, options),
     cancel: (id: string) =>
       ipcRenderer.invoke('download:cancel', id),
     extractTitle: (url: string, browser?: string) =>
       ipcRenderer.invoke('download:extract-title', url, browser),
-    onProgress: (cb: any) =>
-      ipcRenderer.on('download:progress', cb),
-    offProgress: (cb: any) =>
-      ipcRenderer.removeListener('download:progress', cb),
-    onLog: (cb: any) =>
-      ipcRenderer.on('download:log', cb),
-    offLog: (cb: any) =>
-      ipcRenderer.removeListener('download:log', cb),
-    onStatus: (cb: any) =>
-      ipcRenderer.on('download:status', cb),
-    offStatus: (cb: any) =>
-      ipcRenderer.removeListener('download:status', cb),
-    onComplete: (cb: any) =>
-      ipcRenderer.on('download:complete', cb),
-    offComplete: (cb: any) =>
-      ipcRenderer.removeListener('download:complete', cb),
-    onError: (cb: any) =>
-      ipcRenderer.on('download:error', cb),
-    offError: (cb: any) =>
-      ipcRenderer.removeListener('download:error', cb),
-    onPaused: (cb: any) =>
-      ipcRenderer.on('download:paused', cb),
-    offPaused: (cb: any) =>
-      ipcRenderer.removeListener('download:paused', cb),
+    ...createDownloadEventSubscriptions(ipcRenderer),
   },
   deps: {
     checkYtDlp: () => ipcRenderer.invoke('deps:check-ytdlp'),
@@ -52,7 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   prefs: {
     get: (key: string) => ipcRenderer.invoke('prefs:get', key),
-    set: (key: string, value: any) => ipcRenderer.invoke('prefs:set', key, value),
+    set: (key, value) => ipcRenderer.invoke('prefs:set', key, value),
     getAll: () => ipcRenderer.invoke('prefs:getAll'),
   },
   dialog: {
@@ -67,4 +46,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openProvider: (url: string, source: string) => ipcRenderer.invoke('app:open-provider', url, source),
     getVersion: () => ipcRenderer.invoke('app:get-version'),
   },
-})
+}
+
+contextBridge.exposeInMainWorld('electronAPITransport', api)
