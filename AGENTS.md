@@ -7,9 +7,9 @@ HVD Video Downloader is an Electron + React desktop GUI that wraps [yt-dlp](http
 ## Technology Stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, i18next
-- **Backend / Main process:** Electron 33, Node.js built-ins (`child_process`, `https`, `fs`, etc.)
+- **Backend / Main process:** Electron 43, Node.js built-ins (`child_process`, `https`, `fs`, etc.)
 - **State:** Zustand stores in `src/stores/`
-- **IPC:** `electron/preload.ts` exposes a typed `window.electronAPI`
+- **IPC:** `electron/preload.ts` exposes a typed transport; `src/main.tsx` installs the renderer's `window.electronAPI` adapter
 - **Internationalization:** 6 locales in `src/i18n/locales/`
 - **Tests:** Vitest, files in `tests/`
 
@@ -32,6 +32,9 @@ tests/              # Vitest tests
 ```
 
 ## Common Commands
+
+Development tooling requires Node.js 22.12.0 or later. The desktop runtime
+requires a 64-bit OS; macOS 12 or later is supported by Electron 43.
 
 ```bash
 npm install

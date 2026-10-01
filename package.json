@@ -1,11 +1,14 @@
 {
   "name": "hvd",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "HVD Video Downloader - yt-dlp GUI wrapper",
   "main": "dist-electron/main.js",
   "author": "David Duarte",
   "license": "MIT",
   "appId": "com.coredds.hvd",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
@@ -14,7 +17,7 @@
     "electron:build": "npm run build && electron-builder",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0"
   },
   "dependencies": {
     "i18next": "^26.0.0",
@@ -32,7 +35,7 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
-    "electron": "^33.0.0",
+    "electron": "^43.7.7",
     "electron-builder": "^26.0.0",
     "eslint": "^10.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.2.0] - 2026-10-01
+
+### Changed
+- Upgraded the desktop runtime to Electron 43.7.7, resolving the remaining dependency audit findings. Development requires Node.js 22.12.0 or later; desktop builds require a 64-bit OS and macOS 12 or later.
+- Shared typed IPC contracts now cover the preload and renderer. Download callbacks receive payloads without exposing privileged Electron event objects, while preserving matching listener cleanup.
+- Persisted preferences are typed and normalized against defaults; malformed window bounds fall back safely without discarding other saved settings.
+- Startup initialization has explicit lifecycle cleanup and stable hook dependencies, avoiding repeated checks on language changes or late state updates after unmount.
+- Lint now enforces zero warnings, with regression coverage for event bridging, preference normalization, error messages, and startup cleanup.
+
 ## [2.1.1] - 2026-09-30
 
 ### Fixed

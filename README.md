@@ -34,6 +34,9 @@ the browser before downloading often helps.
 
 ## Installation
 
+Requires a 64-bit operating system: Windows 10 or later, macOS 12 (Monterey)
+or later, or Linux.
+
 Download the latest installer from the
 [Releases](https://github.com/coredds/hvd2/releases) page.
 
@@ -41,6 +44,9 @@ On first launch the app checks for required tools and downloads them
 automatically if needed.
 
 ## Development
+
+Use Node.js 22.12.0 or later. Electron 43 downloads its development binary
+on demand; `npm run dev` initializes it automatically.
 
 ```bash
 npm install
