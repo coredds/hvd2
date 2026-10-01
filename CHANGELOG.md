@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.1] - 2026-09-30
+
+### Fixed
+- Download progress, logs, completion, and errors now remain synchronized when switching to Settings or Logs.
+- Paused downloads can be resumed with Start All. Intentional stops no longer become errors or trigger cookie fallback, and Pause All stops downloads concurrently.
+- Removing an active queue entry waits for its process to stop; duplicate starts and late events from terminated processes are ignored.
+- Completed downloads retain their final output path, including converted audio, so the open-file action works.
+- Dependency installation waits for downloaded files to finish writing before extraction or replacement.
+- Windows ZIP extraction now works when the app inherits a PowerShell 7 module path; extraction failures include the underlying error output.
+- yt-dlp explicitly uses the installed Deno runtime for extraction commands.
+- Unicode titles and output paths now use explicit UTF-8 output from yt-dlp on Windows, fixing corrupted smart quotes and other characters.
+
+### Changed
+- Removed unused `electron-store` and its production dependency chain; preferences continue using the existing JSON-backed service.
+- Updated compatible development-tool dependencies to resolve available audit findings.
+- CI now runs tests and lint before building installers on Windows, macOS, and Linux.
+- Expanded regression coverage for download lifecycle, queue operations, dependency streams, archive helpers, and Unicode output.
+
 ## [2.1.0] - 2026-09-12
 
 ### Added

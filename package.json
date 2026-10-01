@@ -1,6 +1,6 @@
 {
   "name": "hvd",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "HVD Video Downloader - yt-dlp GUI wrapper",
   "main": "dist-electron/main.js",
   "author": "David Duarte",
@@ -17,7 +17,6 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
-    "electron-store": "^11.0.0",
     "i18next": "^26.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

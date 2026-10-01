@@ -14,7 +14,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', 'electron-store', 'child_process', 'path', 'fs', 'os', 'stream', 'https', 'http', 'url', 'crypto'],
+              external: ['electron', 'child_process', 'path', 'fs', 'os', 'stream', 'https', 'http', 'url', 'crypto'],
               output: {
                 format: 'cjs',
               },
