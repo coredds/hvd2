@@ -14,10 +14,18 @@ import { classifyDownloadError, summarizeError } from './ErrorClassifier'
 export type { DownloadItem, DownloadOptions }
 export { buildCommand, buildYoutubeFormatString, isBestAvailable, isWorstAvailable, isBestFormat }
 
+interface ActiveDownload {
+  child: ChildProcess
+  stopRequested: boolean
+  done: Promise<void>
+  finish: () => void
+}
+
 export class YtDlpService {
   private ytDlpPath = 'yt-dlp'
   private deps: DependencyManager
-  private activeProcesses: Map<string, ChildProcess> = new Map()
+  private activeProcesses: Map<string, ActiveDownload> = new Map()
+  private shuttingDown = false
   private readonly isWin = process.platform === 'win32'
 
   constructor() {
@@ -29,8 +37,12 @@ export class YtDlpService {
     return this.deps
   }
 
-  private spawnYtDlp(args: string[]): ChildProcess {
-    return spawn(this.ytDlpPath, args, {
+  private spawnYtDlp(args: string[], configureExtraction = true): ChildProcess {
+    const outputArgs = configureExtraction ? ['--encoding', 'utf-8'] : []
+    const runtimeArgs = configureExtraction && this.deps.isDenoAvailableLocally()
+      ? ['--js-runtimes', `deno:${this.getDenoPath()}`]
+      : []
+    return spawn(this.ytDlpPath, [...outputArgs, ...runtimeArgs, ...args], {
       env: this.buildEnv(),
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
@@ -81,7 +93,7 @@ export class YtDlpService {
 
   async getVersion(): Promise<string> {
     try {
-      const child = this.spawnYtDlp(['--version'])
+      const child = this.spawnYtDlp(['--version'], false)
       const buf: Buffer[] = []
       child.stdout!.on('data', (d) => buf.push(d))
       return new Promise((resolve) => {
@@ -229,7 +241,7 @@ export class YtDlpService {
 
   async updateSelf(): Promise<{ success: boolean; message: string }> {
     return new Promise((resolve) => {
-      const child = this.spawnYtDlp(['-U'])
+      const child = this.spawnYtDlp(['-U'], false)
       const stdout: Buffer[] = []
       const stderr: Buffer[] = []
       child.stdout!.on('data', (d) => stdout.push(d))
@@ -303,6 +315,9 @@ export class YtDlpService {
   // ─── Download ───────────────────────────────────────────────
 
   startDownload(item: DownloadItem, options: DownloadOptions): ChildProcess {
+    if (this.shuttingDown) throw new Error('Downloads cannot start during shutdown')
+    const existing = this.activeProcesses.get(item.id)
+    if (existing) return existing.child
     const args = buildCommand(item, options, this.getFFmpegPath(), this.outputDir)
     console.log('[YtDlpService] starting download with yt-dlp path:', this.ytDlpPath)
     console.log('[YtDlpService] command:', this.ytDlpPath, args.join(' '))
@@ -312,30 +327,39 @@ export class YtDlpService {
   private runDownload(item: DownloadItem, options: DownloadOptions, args: string[], retriedWithoutCookies: boolean): ChildProcess {
     const child = this.spawnYtDlp(args)
 
+    let resolveDone!: () => void
+    const process: ActiveDownload = {
+      child,
+      stopRequested: false,
+      done: new Promise<void>((resolve) => { resolveDone = resolve }),
+      finish: () => {
+        if (this.activeProcesses.get(item.id) === process) this.activeProcesses.delete(item.id)
+        resolveDone()
+      },
+    }
+    this.activeProcesses.set(item.id, process)
+    const isCurrent = () => this.activeProcesses.get(item.id) === process
+
     // Capture stderr for error reporting
-let stderrText = ''
     const stderrBuf: Buffer[] = []
     child.stderr!.on('data', (chunk: Buffer) => {
+      if (!isCurrent() || process.stopRequested) return
       stderrBuf.push(chunk)
     })
-
-    this.activeProcesses.set(item.id, child)
-
-    const allWindows = BrowserWindow.getAllWindows()
-    if (allWindows.length === 0) return child
-    const win = allWindows[0]
 
     let downloadedFilePath: string | null = null
     let finalFilePath: string | null = null
     const tempFiles: string[] = []
     let inPostProcessing = false
 
-    const push = (channel: string, data: any) => {
-      win.webContents.send(channel, data)
+    const push = (channel: string, data: unknown) => {
+      if (!isCurrent() || process.stopRequested || this.shuttingDown) return
+      this.sendDownloadEvent(channel, data)
     }
 
     let buf = Buffer.alloc(0)
     child.stdout!.on('data', (chunk: Buffer) => {
+      if (!isCurrent() || process.stopRequested) return
       buf = Buffer.concat([buf, chunk])
       while (buf.length > 0) {
         const idx = buf.indexOf('\n'.charCodeAt(0))
@@ -375,23 +399,30 @@ let stderrText = ''
 
         if (parsed.finalFilePath) {
           finalFilePath = parsed.finalFilePath
-          push('download:status', { id: item.id, key: 'status.merging' })
+          if (parsed.statusKey) push('download:status', { id: item.id, key: parsed.statusKey })
         }
       }
     })
 
-    child.on('close', async (code) => {
-      this.activeProcesses.delete(item.id)
-      stderrText = this.decodeOutput(Buffer.concat(stderrBuf))
+    child.on('close', (code) => {
+      if (!isCurrent()) return
+      if (process.stopRequested) {
+        process.finish()
+        if (!this.shuttingDown) this.sendDownloadEvent('download:paused', { id: item.id })
+        return
+      }
+      const stderrText = this.decodeOutput(Buffer.concat(stderrBuf))
 
       if (code === 0) {
         const bestPath = finalFilePath || downloadedFilePath
-        await this.cleanupIntermediateFiles(tempFiles, finalFilePath, options.embedThumbnail)
+        this.cleanupIntermediateFiles(tempFiles, finalFilePath, options.embedThumbnail)
         push('download:complete', { id: item.id, filePath: bestPath || '' })
       } else if (!retriedWithoutCookies && args.includes('--cookies-from-browser') && isBrowserCookieError(stderrText)) {
         console.log('[YtDlpService] browser cookie extraction failed, retrying without cookies')
         push('download:log', { id: item.id, line: 'Browser cookies unavailable; retrying without authentication...' })
+        process.finish()
         this.runDownload(item, options, stripCookieArgs(args), true)
+        return
       } else {
         const message = summarizeError(stderrText) || `exit code ${code}`
         push('download:error', {
@@ -401,11 +432,13 @@ let stderrText = ''
           cookiesFailed: retriedWithoutCookies,
         })
       }
+      process.finish()
     })
 
-child.on('error', (err) => {
-      this.activeProcesses.delete(item.id)
+    child.on('error', (err) => {
+      if (!isCurrent() || process.stopRequested) return
       push('download:error', { id: item.id, message: `Failed to start yt-dlp: ${err.message}`, kind: 'unknown', cookiesFailed: false })
+      process.finish()
     })
 
     return child
@@ -432,26 +465,39 @@ child.on('error', (err) => {
 
   // ─── Process management ─────────────────────────────────────
 
-  cancelDownload(id: string) {
-    const child = this.activeProcesses.get(id)
-    if (child && !child.killed) {
-      child.kill()
-      this.activeProcesses.delete(id)
-      const allWindows = BrowserWindow.getAllWindows()
-      if (allWindows.length > 0) allWindows[0].webContents.send('download:paused', { id })
+  private sendDownloadEvent(channel: string, data: unknown) {
+    const win = BrowserWindow.getAllWindows().find((window) => !window.isDestroyed())
+    if (win) win.webContents.send(channel, data)
+  }
+
+  async cancelDownload(id: string): Promise<void> {
+    const process = this.activeProcesses.get(id)
+    if (!process) return
+    if (!process.stopRequested) {
+      process.stopRequested = true
+      try {
+        if (!process.child.kill()) throw new Error(`Could not stop download ${id}`)
+      } catch (error) {
+        process.stopRequested = false
+        throw error
+      }
     }
+    await process.done
   }
 
   cancelAll() {
-    for (const child of this.activeProcesses.values()) {
-      if (!child.killed) child.kill()
+    this.shuttingDown = true
+    for (const process of this.activeProcesses.values()) {
+      process.stopRequested = true
+      if (!process.child.killed) process.child.kill()
+      process.finish()
     }
     this.activeProcesses.clear()
   }
 
   // ─── Temp file cleanup ──────────────────────────────────────
 
-  private async cleanupIntermediateFiles(
+  private cleanupIntermediateFiles(
     tempFiles: string[],
     finalFilePath: string | null,
     embedThumbnail: boolean,

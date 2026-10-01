@@ -82,7 +82,7 @@ if (options.embedThumbnail) {
     args.push('--add-metadata')
   }
 
-  args.push('--newline', '--progress')
+  args.push('--newline', '--progress', '--no-quiet', '--print', 'after_move:HVD_FINAL_PATH:%(filepath)j')
 
   if (item.noPlaylist) {
     args.push('--no-playlist')

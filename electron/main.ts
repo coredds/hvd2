@@ -83,7 +83,7 @@ ipcMain.handle('download:start', async (_event, item: DownloadItem, options: Dow
 })
 
 ipcMain.handle('download:cancel', async (_event, id: string) => {
-  ytDlp.cancelDownload(id)
+  await ytDlp.cancelDownload(id)
 })
 
 ipcMain.handle('download:extract-title', async (_event, url: string, browser?: string) => {

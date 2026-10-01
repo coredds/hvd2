@@ -1,10 +1,10 @@
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import http from 'http'
-import https from 'https'
 import { spawn } from 'child_process'
 import { app } from 'electron'
+import { downloadFile } from './downloadFile'
+import { resolveArchiveTool, tempFileExtension, ffmpegMatcher, denoMatcher, escapePowershell, getWindowsPowerShellEnvironment } from './dependencyArchives'
 
 function isWindows(): boolean {
   return process.platform === 'win32'
@@ -98,7 +98,7 @@ export class DependencyManager {
     if (type === 'ytdlp') {
       const dest = this.getLocalYtDlpPath()
       const tmpDest = dest + '.tmp'
-      await this.downloadFile(url, tmpDest, onProgress)
+      await downloadFile(url, tmpDest, onProgress)
       try {
         if (fs.existsSync(dest)) {
           fs.unlinkSync(dest)
@@ -117,85 +117,23 @@ export class DependencyManager {
       }
       if (!isWindows()) fs.chmodSync(dest, 0o755)
     } else if (type === 'ffmpeg') {
-      const isTarXz = url.endsWith('.tar.xz') || url.endsWith('.txz')
-      const ext = isTarXz ? '.tar.xz' : (path.extname(new URL(url).pathname) || '.zip')
+      const ext = tempFileExtension(url)
       const tmpFile = path.join(os.tmpdir(), `ffmpeg-${Date.now()}${ext}`)
-      await this.downloadFile(url, tmpFile, onProgress)
+      await downloadFile(url, tmpFile, onProgress)
       await this.extractFFmpegFromArchive(tmpFile, this.binDirectory)
       fs.unlinkSync(tmpFile)
     } else if (type === 'deno') {
       const tempZip = path.join(os.tmpdir(), `deno-${Date.now()}.zip`)
-      await this.downloadFile(url, tempZip, onProgress)
-      await this.extractFromArchive(tempZip, this.binDirectory, isWindows() ? 'deno.exe' : 'deno')
+      await downloadFile(url, tempZip, onProgress)
+      await this.extractFromArchiveGeneric(tempZip, this.binDirectory,
+        (name) => denoMatcher(name, process.platform), isWindows() ? 'deno.exe' : 'deno')
       fs.unlinkSync(tempZip)
       if (!isWindows()) fs.chmodSync(this.getLocalDenoPath(), 0o755)
     }
   }
 
-  private downloadFile(url: string, dest: string, onProgress?: (pct: number) => void): Promise<void> {
-    const userAgent = 'HVD-Video-Downloader/2'
-
-    const resolveUrl = (requestUrl: string, maxRedirects: number = 5): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const mod = requestUrl.startsWith('https') ? https : http
-        const req = mod.request(
-          requestUrl,
-          { headers: { 'User-Agent': userAgent } },
-          (res: any) => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers['location'] && maxRedirects > 0) {
-              let redirectUrl: string
-              try {
-                redirectUrl = new URL(res.headers['location'], requestUrl).href
-              } catch {
-                res.resume()
-                reject(new Error(`Invalid redirect Location from ${requestUrl}`))
-                return
-              }
-              res.resume()
-              resolve(resolveUrl(redirectUrl, maxRedirects - 1))
-            } else if (res.statusCode >= 400) {
-              res.resume()
-              reject(new Error(`HTTP ${res.statusCode} for ${requestUrl}`))
-            } else {
-              const totalLen = parseInt(res.headers['content-length'] || '0', 10)
-              let downloaded = 0
-              const file = fs.createWriteStream(dest)
-
-              res.on('data', (chunk: Buffer) => {
-                downloaded += chunk.length
-                if (totalLen > 0 && onProgress) {
-                  onProgress(downloaded / totalLen)
-                }
-              })
-
-              res.on('end', () => resolve(requestUrl))
-              res.on('error', (err: Error) => reject(err))
-              file.on('error', (err: Error) => reject(err))
-              res.pipe(file)
-            }
-          },
-        )
-        req.on('error', reject)
-        req.end()
-      })
-    }
-
-    return resolveUrl(url).then(() => {}).catch((err) => { throw err })
-  }
-
   private extractFFmpegFromArchive(archivePath: string, destDir: string): Promise<void> {
-    const matcher = (entryName: string) => {
-      return entryName.endsWith('bin/ffmpeg.exe') || entryName.endsWith('bin/ffmpeg')
-        || entryName.endsWith('ffmpeg.exe') || entryName.endsWith('ffmpeg')
-    }
-    return this.extractFromArchiveGeneric(archivePath, destDir, matcher, isWindows() ? 'ffmpeg.exe' : 'ffmpeg')
-  }
-
-  private extractFromArchive(archivePath: string, destDir: string, targetFile: string): Promise<void> {
-    const matcher = (entryName: string) => {
-      return entryName === targetFile || entryName.endsWith('/' + targetFile)
-    }
-    return this.extractFromArchiveGeneric(archivePath, destDir, matcher, targetFile)
+    return this.extractFromArchiveGeneric(archivePath, destDir, ffmpegMatcher, isWindows() ? 'ffmpeg.exe' : 'ffmpeg')
   }
 
   private async extractFromArchiveGeneric(
@@ -204,12 +142,12 @@ export class DependencyManager {
     matcher: (name: string) => boolean,
     outName: string,
   ): Promise<void> {
-    const isTarXz = archivePath.endsWith('.tar.xz') || archivePath.endsWith('.txz')
-    if (isTarXz) {
+    const tool = resolveArchiveTool(process.platform, archivePath)
+    if (tool === 'tar') {
       await this.extractWithTar(archivePath, destDir, matcher, outName)
-    } else if (isWindows()) {
+    } else if (tool === 'powershell') {
       await this.extractWithPowershell(archivePath, destDir, matcher, outName)
-    } else if (process.platform === 'darwin') {
+    } else if (tool === 'ditto') {
       await this.extractWithDitto(archivePath, destDir, matcher, outName)
     } else {
       await this.extractWithUnzip(archivePath, destDir, matcher, outName)
@@ -225,14 +163,20 @@ export class DependencyManager {
     const tmpDir = path.join(os.tmpdir(), `hvd-extract-${Date.now()}`)
     fs.mkdirSync(tmpDir, { recursive: true })
     return new Promise<void>((resolve, reject) => {
-      const escapedSrc = archivePath.replace(/'/g, "''")
-      const escapedDest = tmpDir.replace(/'/g, "''")
+      const escapedSrc = escapePowershell(archivePath)
+      const escapedDest = escapePowershell(tmpDir)
+      const stderr: Buffer[] = []
       const child = spawn('powershell', [
         '-NoProfile', '-NonInteractive', '-Command',
         `Expand-Archive -LiteralPath '${escapedSrc}' -DestinationPath '${escapedDest}' -Force`,
-      ], { windowsHide: true })
+      ], { windowsHide: true, env: getWindowsPowerShellEnvironment(process.env) })
+      child.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk))
       child.on('close', (code) => {
-        if (code !== 0) { reject(new Error(`Expand-Archive failed with code ${code}`)); return }
+        if (code !== 0) {
+          const detail = Buffer.concat(stderr).toString('utf8').trim()
+          reject(new Error(`Expand-Archive failed with code ${code}${detail ? `: ${detail}` : ''}`))
+          return
+        }
         try {
           const found = this.findAndMove(tmpDir, destDir, matcher, outName)
           if (!found) reject(new Error(`Could not find ${outName} in extracted archive`))

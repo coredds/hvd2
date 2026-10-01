@@ -1,51 +1,25 @@
 import { describe, it, expect } from 'vitest'
 
-// Test the platform detection and URL-selection logic by importing the
-// file and verifying side-effect-free functions. We only test the pure
-// functions; the class methods that do I/O need mocking and are tested
-// via the archive-dispatch test below.
-
-// ---------------------------------------------------------------------------
-// Replicate the archive-dispatch logic from DependencyManager.ts so we can
-// test it without mocking child_process. The archive type is chosen based
-// on platform + file extension.
-
-type Platform = 'win32' | 'darwin' | 'linux'
-
-function resolveArchiveTool(platform: Platform, archivePath: string): string {
-  const isTarXz = archivePath.endsWith('.tar.xz') || archivePath.endsWith('.txz')
-  if (isTarXz) return 'tar'
-  if (platform === 'win32') return 'powershell'
-  if (platform === 'darwin') return 'ditto'
-  return 'unzip'
-}
-
-function tempFileExtension(url: string, _archivePath: string): string {
-  const isTarXz = url.endsWith('.tar.xz') || url.endsWith('.txz')
-  if (isTarXz) return '.tar.xz'
-  const pathname = new URL(url).pathname
-  const lastDot = pathname.lastIndexOf('.')
-  return lastDot > 0 ? pathname.slice(lastDot) : '.zip'
-}
-
-// Same matchers used in DependencyManager
-function ffmpegMatcher(entryName: string): boolean {
-  return entryName.endsWith('bin/ffmpeg.exe') || entryName.endsWith('bin/ffmpeg')
-    || entryName.endsWith('ffmpeg.exe') || entryName.endsWith('ffmpeg')
-}
-
-function denoMatcher(entryName: string, platform: Platform): boolean {
-  const target = platform === 'win32' ? 'deno.exe' : 'deno'
-  return entryName === target || entryName.endsWith('/' + target)
-}
-
-function escapePowershell(path: string): string {
-  return path.replace(/'/g, "''")
-}
-
-// ---------------------------------------------------------------------------
+import { resolveArchiveTool, tempFileExtension, ffmpegMatcher, denoMatcher, escapePowershell, getWindowsPowerShellEnvironment } from '../electron/services/dependencyArchives'
 
 describe('DependencyManager', () => {
+  describe('Windows PowerShell environment', () => {
+    it('removes an inherited PowerShell 7 module path while preserving the rest of the environment', () => {
+      const inherited = { PSModulePath: 'C:\\Program Files\\PowerShell\\7\\Modules', PATH: 'C:\\Windows', TEMP: 'C:\\Temp' }
+      expect(getWindowsPowerShellEnvironment(inherited)).toEqual({ PATH: 'C:\\Windows', TEMP: 'C:\\Temp' })
+      expect(inherited.PSModulePath).toContain('PowerShell\\7')
+    })
+
+    it('handles Windows environment variable names case-insensitively', () => {
+      expect(getWindowsPowerShellEnvironment({ psmodulepath: 'incompatible modules', Path: 'system executables' }))
+        .toEqual({ Path: 'system executables' })
+    })
+
+    it('preserves environments without an inherited module path', () => {
+      expect(getWindowsPowerShellEnvironment({ SystemRoot: 'C:\\Windows' })).toEqual({ SystemRoot: 'C:\\Windows' })
+    })
+  })
+
   describe('archive tool dispatch', () => {
     it('Windows .zip uses powershell', () => {
       expect(resolveArchiveTool('win32', 'file.zip')).toBe('powershell')
@@ -77,17 +51,17 @@ describe('DependencyManager', () => {
   describe('temp file extension', () => {
     it('.tar.xz URL produces .tar.xz temp file', () => {
       const url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz'
-      expect(tempFileExtension(url, '')).toBe('.tar.xz')
+      expect(tempFileExtension(url)).toBe('.tar.xz')
     })
 
     it('standard .zip URL produces .zip', () => {
       const url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-      expect(tempFileExtension(url, '')).toBe('.zip')
+      expect(tempFileExtension(url)).toBe('.zip')
     })
 
     it('unknown extension defaults to .zip', () => {
       const url = 'https://example.com/ffmpeg'
-      expect(tempFileExtension(url, '')).toBe('.zip')
+      expect(tempFileExtension(url)).toBe('.zip')
     })
   })
 

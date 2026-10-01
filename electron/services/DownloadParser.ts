@@ -5,6 +5,7 @@ const THUMBNAIL_RE = /\[download\] (.+\.(jpg|jpeg|png|webp)) has already been do
 const THUMBNAIL_WRITING_RE = /\[info\] Writing video thumbnail (.+\.(jpg|jpeg|png|webp)) to: (.+)/
 const FFMPEG_RE = /\[ffmpeg\]/
 const POST_PROCESS_RE = /\[PostProcessor\]/
+const FINAL_PATH_PREFIX = 'HVD_FINAL_PATH:'
 
 export const TEMP_FILE_REs = [
   /\.f\d+\.(mp4|webm|m4a|aac)$/,
@@ -84,6 +85,15 @@ export function parseDownloadLine(
   if (finalMatch) {
     result.finalFilePath = finalMatch[1]
     result.statusKey = 'status.merging'
+  }
+
+  if (line.startsWith(FINAL_PATH_PREFIX)) {
+    try {
+      const filePath: unknown = JSON.parse(line.slice(FINAL_PATH_PREFIX.length))
+      if (typeof filePath === 'string' && filePath) result.finalFilePath = filePath
+    } catch {
+      // Ignore malformed path output and retain the previously parsed destination.
+    }
   }
 
   return result

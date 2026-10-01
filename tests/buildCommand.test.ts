@@ -45,6 +45,12 @@ describe('CommandBuilder', () => {
       expect(hasFlag(args, '--progress')).toBe(true)
     })
 
+    it('requests the post-processed final path while retaining normal logs', () => {
+      const args = build()
+      expect(findFlag(args, '--print')).toBe('after_move:HVD_FINAL_PATH:%(filepath)j')
+      expect(hasFlag(args, '--no-quiet')).toBe(true)
+    })
+
     it('includes ffmpeg-location', () => {
       const args = build()
       expect(findFlag(args, '--ffmpeg-location')).toBe(ffmpegPath)

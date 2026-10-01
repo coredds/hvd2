@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import UrlInput from '../downloads/UrlInput'
 import VideoOptions from '../downloads/VideoOptions'
@@ -11,7 +11,8 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useLogStore } from '../../stores/logStore'
 import { buildDownloadOptionsForItem } from '../../lib/buildDownloadOptions'
 import { getAuthProvider, getLoginUrl } from '../../lib/authProviders'
-import type { DownloadErrorKind, DownloadItem } from '../../types'
+import { getStartableItems, removeDownloads, startDownload, pauseDownloads } from '../../lib/downloadQueue'
+import type { DownloadItem } from '../../types'
 
 interface Props {
   setStatusMessage: (key: string) => void
@@ -29,11 +30,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
   const { t } = useTranslation()
   const items = useDownloadStore((s) => s.items)
   const addUrls = useDownloadStore((s) => s.addUrls)
-  const removeItems = useDownloadStore((s) => s.removeItems)
-  const updateProgress = useDownloadStore((s) => s.updateProgress)
-  const updateStatus = useDownloadStore((s) => s.updateStatus)
   const setTitle = useDownloadStore((s) => s.setTitle)
-  const setError = useDownloadStore((s) => s.setError)
   const retryItemAction = useDownloadStore((s) => s.retryItem)
   const retryFailedAction = useDownloadStore((s) => s.retryFailed)
   const appendLog = useLogStore((s) => s.appendLog)
@@ -49,6 +46,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [optionsExpanded, setOptionsExpanded] = useState(true)
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  const removing = useRef(false)
 
   const [videoQuality, setVideoQuality] = useState(prefs['video.quality'])
   const [videoFormat, setVideoFormat] = useState(prefs['video.format'])
@@ -96,7 +94,6 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
       console.error('[DownloadsTab] window.electronAPI is undefined!', window)
       return
     }
-    console.log('[DownloadsTab] registering IPC listeners')
 
     // Check yt-dlp availability on mount
     api.deps.checkYtDlp().then((yt) => {
@@ -107,55 +104,7 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
       }
     }).catch(() => setYtDlpStatus('not-found'))
 
-    const onProgress = (_event: unknown, { id, progress }: { id: string; progress: number }) => {
-      updateProgress(id, progress)
-    }
-
-    const onLog = (_event: unknown, { line }: { id: string; line: string }) => {
-      appendLog(line)
-    }
-
-    const onStatus = (_event: unknown, { key }: { id: string; key: string }) => {
-      setStatusMessage(key)
-    }
-
-    const onComplete = (_event: unknown, { id }: { id: string; filePath: string }) => {
-      updateStatus(id, 'COMPLETED')
-      setStatusMessage('status.download.completed')
-      setStatusSpinner(false)
-      setTimeout(() => setStatusMessage('status.ready'), 3000)
-    }
-
-    const onError = (_event: unknown, { id, message, kind, cookiesFailed }: { id: string; message: string; kind: DownloadErrorKind; cookiesFailed: boolean }) => {
-      updateStatus(id, 'ERROR')
-      setError(id, message, kind, cookiesFailed)
-      setStatusMessage('status.error')
-      setStatusSpinner(false)
-      appendLog(t('downloads.error.log').replace('{0}', message))
-    }
-
-    const onPaused = (_event: unknown, { id }: { id: string }) => {
-      updateStatus(id, 'PAUSED')
-    }
-
-    api.downloads.onProgress(onProgress)
-    api.downloads.onLog(onLog)
-    api.downloads.onStatus(onStatus)
-    api.downloads.onComplete(onComplete)
-    api.downloads.onError(onError)
-    api.downloads.onPaused(onPaused)
-
-    return () => {
-      console.log('[DownloadsTab] removing IPC listeners')
-      api.downloads.offProgress(onProgress)
-      api.downloads.offLog(onLog)
-      api.downloads.offStatus(onStatus)
-      api.downloads.offComplete(onComplete)
-      api.downloads.offError(onError)
-      api.downloads.offPaused(onPaused)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [setYtDlpStatus])
 
   const addToQueue = async () => {
     const trimmed = urlText.trim()
@@ -274,23 +223,33 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
       }
     }
 
-    for (const item of targets) {
-      updateStatus(item.id, 'DOWNLOADING')
+    const started = await Promise.all(targets.map(async (item) => {
       const options = buildDownloadOptionsForItem(item, optionParams)
-      window.electronAPI.downloads.start(item, options)
-    }
+      const success = await startDownload(item, options, window.electronAPI.downloads.start)
+      if (!success) {
+        const current = useDownloadStore.getState().items.find((entry) => entry.id === item.id)
+        if (current?.status === 'ERROR') {
+          appendLog(t('downloads.error.log').replace('{0}', current.errorMessage))
+          setStatusMessage('status.error')
+        }
+      }
+      return success
+    }))
+    setStatusSpinner(useDownloadStore.getState().items.some((item) => item.status === 'DOWNLOADING'))
+    const startedCount = started.filter(Boolean).length
+    if (startedCount === 0) return
 
     const targetIds = new Set(targets.map((t) => t.id))
     const completedOrActive = items.filter((i) => !targetIds.has(i.id) && (i.status === 'COMPLETED' || i.status === 'DOWNLOADING')).length
     if (completedOrActive > 0) {
-      appendLog(t('log.downloads.started').replace('{0}', String(targets.length)).replace('{1}', t('log.downloads.started.suffix').replace('{0}', String(completedOrActive))))
+      appendLog(t('log.downloads.started').replace('{0}', String(startedCount)).replace('{1}', t('log.downloads.started.suffix').replace('{0}', String(completedOrActive))))
     } else {
-      appendLog(t('log.downloads.started').replace('{0}', String(targets.length)).replace('{1}', ''))
+      appendLog(t('log.downloads.started').replace('{0}', String(startedCount)).replace('{1}', ''))
     }
   }
 
   const startAll = async () => {
-    const queued = items.filter((i) => i.status === 'QUEUED')
+    const queued = getStartableItems(useDownloadStore.getState().items)
     if (queued.length === 0) {
       const allDone = items.filter((i) => i.status === 'COMPLETED' || i.status === 'DOWNLOADING')
       if (allDone.length > 0) {
@@ -326,12 +285,14 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
     }
   }
 
-  const pauseAll = () => {
-    let pausedCount = 0
-    for (const item of items) {
-      if (item.status === 'DOWNLOADING') {
-        window.electronAPI.downloads.cancel(item.id)
-        pausedCount++
+  const pauseAll = async () => {
+    const ids = useDownloadStore.getState().items.filter((item) => item.status === 'DOWNLOADING').map((item) => item.id)
+    const results = await pauseDownloads(ids, window.electronAPI.downloads.cancel)
+    const pausedCount = results.filter((result) => result.success).length
+    for (const result of results) {
+      if (!result.success) {
+        appendLog(t('downloads.error.log').replace('{0}', result.message))
+        setStatusMessage('status.error')
       }
     }
     if (pausedCount > 0) {
@@ -339,11 +300,21 @@ export default function DownloadsTab({ setStatusMessage, setStatusSpinner, onOpe
     }
   }
 
-  const removeSelected = () => {
-    if (selectedIds.size === 0) return
-    removeItems([...selectedIds])
-    appendLog(t('log.items.removed').replace('{0}', String(selectedIds.size)))
-    setSelectedIds(new Set())
+  const removeSelected = async () => {
+    if (selectedIds.size === 0 || removing.current) return
+    const ids = [...selectedIds]
+    removing.current = true
+    try {
+      await removeDownloads(ids, window.electronAPI.downloads.cancel)
+      appendLog(t('log.items.removed').replace('{0}', String(ids.length)))
+      setSelectedIds((current) => new Set([...current].filter((id) => !ids.includes(id))))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      appendLog(t('downloads.error.log').replace('{0}', message))
+      setStatusMessage('status.error')
+    } finally {
+      removing.current = false
+    }
   }
 
   const toggleSelect = (id: string) => {

@@ -8,6 +8,7 @@ import LogsTab from './components/tabs/LogsTab'
 import StatusBar from './components/StatusBar'
 import { useLogStore } from './stores/logStore'
 import { useSettingsStore } from './stores/settingsStore'
+import { subscribeDownloadEvents } from './lib/downloadEvents'
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null }
@@ -45,6 +46,12 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('status.ready')
   const [statusSpinner, setStatusSpinner] = useState(false)
   const [depsChecked, setDepsChecked] = useState(false)
+
+  useEffect(() => {
+    const api = window.electronAPI
+    if (!api) return
+    return subscribeDownloadEvents(api.downloads, { setStatusMessage, setStatusSpinner })
+  }, [])
 
   useEffect(() => {
     appendLog(t('log.app.started'))
